@@ -2,7 +2,7 @@
 	path = components/common/esp-cjson
 	url = https://github.com/maximkulkin/esp-cjson.git
 [submodule "components/common/esp-homekit"]
-	path = components/common/esp-homekit
+	path = components/common/homekit
 	url = https://github.com/maximkulkin/esp-homekit.git
 [submodule "components/common/esp-wolfssl"]
 	path = components/common/wolfssl
