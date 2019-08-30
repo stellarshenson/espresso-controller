@@ -8,17 +8,14 @@
 	path = components/common/esp-wolfssl
 	url = https://github.com/maximkulkin/esp-wolfssl.git
 [submodule "components/esp-8266/components/esp8266/wifi_config"]
-	path = components/esp-8266/components/esp8266/wifi_config
+	path = components/esp-8266/wifi_config
 	url = https://github.com/maximkulkin/esp-wifi-config.git
 [submodule "components/esp-8266/components/esp8266/qrcode"]
-	path = components/esp-8266/components/esp8266/qrcode
+	path = components/esp-8266/qrcode
 	url = https://github.com/maximkulkin/esp-qrcode.git
 [submodule "components/esp-8266/components/esp8266/led-status"]
-	path = components/esp-8266/components/esp8266/led-status
+	path = components/esp-8266/led-status
 	url = https://github.com/maximkulkin/esp-led-status.git
 [submodule "components/esp-8266/components/esp8266/WS2812FX"]
-	path = components/esp-8266/components/esp8266/WS2812FX
+	path = components/esp-8266/WS2812FX
 	url = https://github.com/pcsaito/WS2812FX-rtos.git
-[submodule "components/esp-8266/components/esp-32/http-parser"]
-	path = components/esp-8266/components/esp-32/http-parser
-	url = https://github.com/maximkulkin/esp-http-parser.git
