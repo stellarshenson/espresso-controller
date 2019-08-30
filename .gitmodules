@@ -5,7 +5,7 @@
 	path = components/common/esp-homekit
 	url = https://github.com/maximkulkin/esp-homekit.git
 [submodule "components/common/esp-wolfssl"]
-	path = components/common/esp-wolfssl
+	path = components/common/wolfssl
 	url = https://github.com/maximkulkin/esp-wolfssl.git
 [submodule "components/esp-8266/components/esp8266/wifi_config"]
 	path = components/esp-8266/wifi_config
