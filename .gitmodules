@@ -19,3 +19,6 @@
 [submodule "components/esp-32/http-parser"]
 	path = components/esp-32/http-parser
 	url = https://github.com/maximkulkin/esp-http-parser.git
+[submodule "components/common/cJSON"]
+	path = components/common/cJSON
+	url = https://github.com/maximkulkin/esp-cjson.git
