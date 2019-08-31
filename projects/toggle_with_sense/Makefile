@@ -3,7 +3,7 @@ PROGRAM = wifi_config
 EXTRA_COMPONENTS = \
 	extras/http-parser \
 	extras/dhcpserver \
-	$(abspath ../../components/esp-8266/wifi_config) \
+	$(abspath ../../components/esp-8266/homekit-wifi-config) \
 	$(abspath ../../components/common/wolfssl) \
 	$(abspath ../../components/common/cJSON) \
 	$(abspath ../../components/common/homekit)
