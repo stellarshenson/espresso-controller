@@ -1,4 +1,5 @@
 PROGRAM = wifi_config
+EXPORT_DIR = export
 
 EXTRA_COMPONENTS = \
 	extras/http-parser \
@@ -16,3 +17,6 @@ include $(SDK_PATH)/common.mk
 
 monitor:
 	$(FILTEROUTPUT) --port $(ESPPORT) --baud 115200 --elf $(PROGRAM_OUT)
+
+export:
+	cp firmware/$(PROGRAM).bin $(EXPORT_DIR)/

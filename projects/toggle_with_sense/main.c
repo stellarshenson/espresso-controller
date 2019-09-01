@@ -1,4 +1,5 @@
 /*
+ * 
  * Example of using esp-wifi-config library to join
  * accessories to WiFi networks.
  *
@@ -14,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <esp/uart.h>
 #include <esp8266.h>
 #include <FreeRTOS.h>
@@ -22,6 +24,7 @@
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
 #include <wifi_config.h>
+#include <espressif/esp_system.h>
 
 
 const int led_gpio = 2;
@@ -90,18 +93,36 @@ homekit_accessory_t *accessories[] = {
     NULL
 };
 
+/**
+ * initialise server config with the accessory and the initial zeroerd password
+ * password will be further replaced with the generated one with accessory_id_init()
+ * */
 homekit_server_config_t config = {
     .accessories = accessories,
-    .password = "111-11-111"
+    .password = "000-00-000"
 };
 
 void on_wifi_ready() {
     homekit_server_init(&config);
 }
 
+/**
+ * generates accessory ID from the chipID, turns 32 bit chipID into 4-byte chunks and gets modulo 9 from each
+ * */
+void accessory_id_init() {
+    uint32_t chipid = sdk_system_get_chip_id();
+    uint8_t accessory_id_digits[] = { chipid >> 0 & 0xf % 9,  chipid >> 4 & 0xf % 9, chipid >> 8 & 0xf % 9, 
+    	chipid >> 12 & 0xf % 9, chipid >> 16 & 0xf % 9, chipid >> 20 & 0xf % 9, chipid >> 24 & 0xf % 9, chipid >> 28 & 0xf % 9 }; 
+    config.password = (char*) malloc( 11 * sizeof(char));
+    snprintf(config.password, 11, "%u%u%u-%u%u-%u%u%u", accessory_id_digits[0], accessory_id_digits[1], accessory_id_digits[2], 
+    	                               accessory_id_digits[3], accessory_id_digits[4], accessory_id_digits[5], accessory_id_digits[6], accessory_id_digits[7]);
+    accessory_id_set(config.password);
+}
+
+
 void user_init(void) {
     uart_set_baud(0, 115200);
-
-    wifi_config_init("my-accessory", NULL, on_wifi_ready);
+    accessory_id_init();
+    wifi_config_init("stellars", NULL, on_wifi_ready);
     led_init();
 }
