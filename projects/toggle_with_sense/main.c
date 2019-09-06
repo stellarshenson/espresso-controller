@@ -155,6 +155,8 @@ void accessory_id_init() {
     config.password = (char*) malloc( 11 * sizeof(char));
     snprintf(config.password, 11, "%u%u%u-%u%u-%u%u%u", accessory_id_digits[0], accessory_id_digits[1], accessory_id_digits[2], 
     	                               accessory_id_digits[3], accessory_id_digits[4], accessory_id_digits[5], accessory_id_digits[6], accessory_id_digits[7]);
+    
+    //set accessory ID to the generated one. This is used in the wifi-config library
     accessory_id_set(config.password);
 }
 
