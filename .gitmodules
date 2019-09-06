@@ -19,3 +19,6 @@
 [submodule "components/common/cJSON"]
 	path = components/common/cJSON
 	url = https://github.com/maximkulkin/esp-cjson.git
+[submodule "components/esp-8266/esp-wifi-config"]
+	path = components/esp-8266/esp-wifi-config
+	url = https://github.com/stellarshenson/esp-wifi-config.git
