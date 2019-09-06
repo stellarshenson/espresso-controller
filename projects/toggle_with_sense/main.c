@@ -1,14 +1,13 @@
 /*
  * 
- * Example of using esp-wifi-config library to join
- * accessories to WiFi networks.
- *
- * When accessory starts without WiFi config or
- * configure WiFi network is not available, it creates
- * it's own WiFi AP "my-accessory-XXXXXX" (where XXXXXX
- * is last 3 digits of accessory's mac address in HEX).
- * If you join that network, you will be presented with
- * a page to choose WiFi network to connect accessory to.
+ * Espresso controller accessory where On/Of functions
+ * by toggling monostable switch and looks at the SENSE
+ * pin to find if espresso machine is on 
+ * 
+ * This accessory uses the modified wifi-config library
+ * that has the homekit id generated from the chipid and
+ * starts an AP mode with a HTTP server upon start when 
+ * wifi config was found.
  *
  * After successful connection accessory shuts down AP.
  *
@@ -26,42 +25,82 @@
 #include <wifi_config.h>
 #include <espressif/esp_system.h>
 
+#define GPIO_ESPRESSO_TOGGLE	2
+#define GPIO_ESPRESSO_SENSE	4
+#define ESPRESSO_SENSE_DELAY	500
 
-const int led_gpio = 2;
+void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
+homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(espresso_on_callback));
+void espresso_sense_task();
 
-void led_write(bool on) {
-    gpio_write(led_gpio, on ? 0 : 1);
+
+/**
+ * toggle the switch
+ * */
+void espresso_toggle(bool on) {
+    //gpio_write(GPIO_ESPRESSO_TOGGLE, on ? 0 : 1);
+    gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
+    vTaskDelay(300 / portTICK_PERIOD_MS);
+    gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
 }
 
 
-void led_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
-
-homekit_characteristic_t led_on = HOMEKIT_CHARACTERISTIC_(
-    ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(led_on_callback)
-);
-
-void led_init() {
-    gpio_enable(led_gpio, GPIO_OUTPUT);
-    led_write(led_on.value.bool_value);
+/**
+ * initialises the espresso state sense and prepare the toggle
+ * this function launches the perpetual task to check the status of
+ * of the espresso circuit and notifiy homekit on the status change
+ * */
+void espresso_init() {
+    //enable ESPRESSO_TOGGLE pin for OUTPUT and ESPRESSO_SENSE for INPUT
+    gpio_enable(GPIO_ESPRESSO_TOGGLE, GPIO_OUTPUT);
+    gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
+    //espresso_toggle(espresso_on.value.bool_value);
+    
+    //enable sense task
+    xTaskCreate(espresso_sense_task, "Espresso Sense", 128, NULL, 2, NULL);
 }
 
-void led_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context) {
-    led_write(led_on.value.bool_value);
+
+/**
+ * run this in a loop, find if the sense pin changed state
+ * */
+void espresso_sense_task() {
+    //monitor the status of espresso power
+    homekit_value_t on;
+    on.bool_value = false;
+
+    //get the status and notify homekit
+    on.bool_value = gpio_read(GPIO_ESPRESSO_TOGGLE);
+    homekit_characteristic_notify(&espresso_on, on);
+
+
+    //keep monitoring by going idle for a predefined time and then sense again.
+    //when status of the espresso changed - notify homekit
+    while(1) {
+	vTaskDelay(ESPRESSO_SENSE_DELAY / portTICK_PERIOD_MS);
+	on.bool_value = gpio_read(GPIO_ESPRESSO_TOGGLE);
+	if( on.bool_value != espresso_on.value.bool_value ) homekit_characteristic_notify(&espresso_on, on);
+    }
+
+}
+
+void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context) {
+    espresso_toggle(espresso_on.value.bool_value);
 }
 
 void led_identify_task(void *_args) {
     for (int i=0; i<3; i++) {
         for (int j=0; j<2; j++) {
-            led_write(true);
+            espresso_toggle(true);
             vTaskDelay(100 / portTICK_PERIOD_MS);
-            led_write(false);
+            espresso_toggle(false);
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
         vTaskDelay(250 / portTICK_PERIOD_MS);
     }
 
-    led_write(led_on.value.bool_value);
+    espresso_toggle(espresso_on.value.bool_value);
 
     vTaskDelete(NULL);
 }
@@ -85,7 +124,7 @@ homekit_accessory_t *accessories[] = {
         }),
         HOMEKIT_SERVICE(LIGHTBULB, .primary=true, .characteristics=(homekit_characteristic_t*[]){
             HOMEKIT_CHARACTERISTIC(NAME, "Sample LED"),
-            &led_on,
+            &espresso_on,
             NULL
         }),
         NULL
@@ -124,5 +163,5 @@ void user_init(void) {
     uart_set_baud(0, 115200);
     accessory_id_init();
     wifi_config_init("stellars", NULL, on_wifi_ready);
-    led_init();
+    espresso_init();
 }
