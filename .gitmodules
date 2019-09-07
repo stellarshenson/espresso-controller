@@ -22,3 +22,6 @@
 [submodule "components/esp-8266/esp-wifi-config"]
 	path = components/esp-8266/esp-wifi-config
 	url = https://github.com/stellarshenson/esp-wifi-config.git
+[submodule "components/common/esp-button"]
+	path = components/common/esp-button
+	url = https://github.com/maximkulkin/esp-button.git
