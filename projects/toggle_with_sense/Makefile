@@ -7,7 +7,8 @@ EXTRA_COMPONENTS = \
 	$(abspath ../../components/esp-8266/esp-wifi-config) \
 	$(abspath ../../components/common/wolfssl) \
 	$(abspath ../../components/common/cJSON) \
-	$(abspath ../../components/common/homekit)
+	$(abspath ../../components/common/homekit) \
+	$(abspath ../../components/common/esp-button)
 
 FLASH_SIZE ?= 32
 

@@ -24,10 +24,11 @@
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
 #include <wifi_config.h>
+#include <button.h>
 #include <espressif/esp_system.h>
 
 #define GPIO_ESPRESSO_TOGGLE	2
-#define GPIO_LED		2
+#define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	4
 #define ESPRESSO_SENSE_DELAY	1500
 
@@ -35,42 +36,77 @@
 #define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "000-00-000"
 
+#define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
+#define HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP HOMEKIT_CUSTOM_UUID("00000001")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_SHOW_SETUP(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP, \
+    .description = "Show Setup", \
+    .format = homekit_format_bool, \
+    .permissions = homekit_permissions_paired_read \
+    | homekit_permissions_paired_write \
+    | homekit_permissions_notify, \
+    .value = HOMEKIT_BOOL_(_value), \
+    ##__VA_ARGS__
+
+
+//prototypes
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
-homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(espresso_on_callback));
 void espresso_sense_task();
 void espresso_toggle(bool on);
-void led_write(bool on);
+void status_led_write(bool on);
 void accessory_identify_task(void *_args);
 
 
+/*
+ * declared characteristics:
+ * espresson_on - controls espresso power
+ * show_setup - controls whether custom setup visibility
+ * */
+homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(espresso_on_callback));
+//homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
+//homekit_characteristic_t wifi_reset = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .id=131, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(change_settings_callback));
+
+//sense value set by the sense task
+homekit_value_t espresso_sense_on = { .bool_value = false };
+
+
+
 /**
- * espresso callback function to receive val
+ * espresso callback function to receive value and enable the toggle
+ * when callback was initated by the sense task - no action is taken
  * */
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context) {
-    espresso_toggle(on.bool_value);
+    if(espresso_sense_on.bool_value != on.bool_value) { 
+	espresso_toggle(on.bool_value);
+    } else {
+	espresso_on.value.bool_value = on.bool_value;
+	status_led_write(on.bool_value);
+    };
 }
 
 /**
- * toggle the switch
+ * toggle the switch 
+ * espresso has only momentary switch, it needs to be toggled on-and-off
+ * and the internal espresso circuits will be energised. When state is off,
+ * the the on-and-off toggle will turn espresso machine off
  * */
 void espresso_toggle(bool on) {
-    //gpio_write(GPIO_ESPRESSO_TOGGLE, on ? 0 : 1);
-    printf("espresso toggle %u\n", on);
+    printf("espresso toggle %u, current state is %u\n", on, espresso_sense_on.bool_value);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
     vTaskDelay(300 / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
 
     //set value
     espresso_on.value.bool_value = on;
-    led_write(on);
+    status_led_write(on);
 }
 
 /**
  * LED status light
  * */
-void led_write(bool on) {
+void status_led_write(bool on) {
     printf("led state: %u\n", on );
-    gpio_write(GPIO_LED, on ? 0 : 1);
+    gpio_write(GPIO_STATUS_LED, on ? 0 : 1);
 }
 
 /**
@@ -84,7 +120,7 @@ void espresso_init() {
     gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
     gpio_set_pullup(GPIO_ESPRESSO_TOGGLE, false, false);
     gpio_set_pullup(GPIO_ESPRESSO_SENSE, false, false);
-    led_write(false);
+    status_led_write(false);
     
     //enable sense task
     xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 3, NULL);
@@ -96,7 +132,6 @@ void espresso_init() {
  * */
 void espresso_sense_task() {
     //monitor the status of espresso power
-    homekit_value_t on;
 
     //get the status and notify homekit
     //on.bool_value = gpio_read(GPIO_ESPRESSO_TOGGLE);
@@ -109,11 +144,11 @@ void espresso_sense_task() {
     while(1) {
 	vTaskDelay(ESPRESSO_SENSE_DELAY / portTICK_PERIOD_MS);
 	//on.bool_value = gpio_read(GPIO_ESPRESSO_TOGGLE);
-	on.bool_value = (rand() % 10 == 0 ? 0 : 1);
+	espresso_sense_on.bool_value = (rand() % 10 == 0 ? 0 : 1);
 	//gpio_read(GPIO_ESPRESSO_TOGGLE);
 	//printf("espresso sense, status:  %d\n", on.bool_value);
-	printf("espresso sense: %d\n", on.bool_value);
-	if( on.bool_value != espresso_on.value.bool_value ) homekit_characteristic_notify(&espresso_on, on);
+	printf("espresso sense: %d\n", espresso_sense_on.bool_value);
+	if( espresso_sense_on.bool_value != espresso_on.value.bool_value ) homekit_characteristic_notify(&espresso_on, espresso_sense_on);
     }
 
     vTaskDelete(NULL);
@@ -133,9 +168,9 @@ void accessory_identify(homekit_value_t _value) {
 void accessory_identify_task(void *_args) {
     for (int i=0; i<3; i++) {
         for (int j=0; j<2; j++) {
-            led_write(true);
+            status_led_write(true);
             vTaskDelay(100 / portTICK_PERIOD_MS);
-             led_write(false);
+             status_led_write(false);
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
 
