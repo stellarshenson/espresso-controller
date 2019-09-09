@@ -23,4 +23,5 @@ copy:
 	cp firmware/$(PROGRAM).bin $(EXPORT_DIR)/
 
 blank:
-	dd if=/dev/zero count=1 bs=1M | tr '\000' '\377' > firmware/blank_1M.bin
+	dd if=/dev/zero of=firmware/blank_1M.bin count=1 bs=1M 
+	#dd if=/dev/zero count=1 bs=1M | tr '\000' '\377' > firmware/blank_1M.bin

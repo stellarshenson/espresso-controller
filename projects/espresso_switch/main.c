@@ -30,7 +30,7 @@
 #define GPIO_ESPRESSO_TOGGLE	2
 #define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	4
-#define ESPRESSO_SENSE_DELAY	1500
+#define ESPRESSO_SENSE_DELAY	3000
 
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
@@ -58,6 +58,7 @@ void status_led_write(bool on);
 void accessory_identify_task(void *_args);
 void accessory_identify_callback(homekit_value_t _value);
 void show_setup_callback();
+void serial_read_task();
 
 /*
  * declared characteristics:
@@ -68,9 +69,8 @@ homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callb
 homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
 //homekit_characteristic_t wifi_reset = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .id=131, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(change_settings_callback));
 
-/**
- * declare accessories and services
- * */
+// declare accessories / services and characteristics
+// those are furhter initialised with homekit_server_init after wifi is configured
 homekit_accessory_t *accessories[] = {
     //accessories
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_lightbulb, .services=(homekit_service_t*[]){
@@ -95,6 +95,12 @@ homekit_accessory_t *accessories[] = {
 	NULL
     }),
     NULL
+};
+
+//homekit server configuration - initial password and the list of declared accessories 
+homekit_server_config_t config = {
+    .accessories = accessories,
+    .password = INITIAL_ACCESSORY_PASSWORD
 };
 
 
@@ -155,7 +161,7 @@ void espresso_init() {
     status_led_write(false);
     
     //enable sense task
-    xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 3, NULL);
+    xTaskCreate(espresso_sense_task, "Espresso Sense", 255, NULL, 3, NULL);
 }
 
 
@@ -221,15 +227,33 @@ void accessory_identify_task(void *_args) {
     vTaskDelete(NULL);
 }
 
+/**
+ * listen for commands from the serial line
+ * commands: 
+ * /reset - to reset devices to factory settings and restart device
+ * */
+void serial_read_task() {
+    char* buffer = calloc(64, 0);
+    while(1) {
+	vTaskDelay(500 / portTICK_PERIOD_MS);
+	int c = uart_getc_nowait(0);
+    
+	if(c != -1) {
+	    scanf("%s", buffer);
+	    printf("intercepted %s\n", buffer);
+	    buffer[0] = 0; //reset buffer
+	}
+    }
+    vTaskDelete(NULL);
+}
 
 /**
- * initialise server config with the accessory and the initial zeroerd password
- * password will be further replaced with the generated one with accessory_id_init()
+ * initialises options from the memory and starts serial line listener
  * */
-homekit_server_config_t config = {
-    .accessories = accessories,
-    .password = INITIAL_ACCESSORY_PASSWORD
-};
+void config_init(){
+    //listen for what is sent over the serial line
+    xTaskCreate(serial_read_task, "Serial Listener", 512, NULL, 4, NULL);
+}
 
 
 /**
@@ -268,6 +292,7 @@ void accessory_password_init() {
 
 
 void user_init(void) {
+    config_init();
     uart_set_baud(0, 74880);
     accessory_password_init();
     wifi_config_init("stellars", NULL, on_wifi_ready);
