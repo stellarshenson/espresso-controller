@@ -21,3 +21,6 @@ monitor:
 
 copy:
 	cp firmware/$(PROGRAM).bin $(EXPORT_DIR)/
+
+blank:
+	dd if=/dev/zero count=1 bs=1M | tr '\000' '\377' > firmware/blank_1M.bin
