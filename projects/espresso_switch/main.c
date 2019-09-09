@@ -247,8 +247,8 @@ void on_wifi_ready() {
  * */
 void accessory_password_init() {
     uint32_t chipid = sdk_system_get_chip_id();
-    uint8_t accessory_id_digits[] = { chipid >> 0 & 0xf % 9,  chipid >> 4 & 0xf % 9, chipid >> 8 & 0xf % 9, 
-    	chipid >> 12 & 0xf % 9, chipid >> 16 & 0xf % 9, chipid >> 20 & 0xf % 9, chipid >> 24 & 0xf % 9, chipid >> 28 & 0xf % 9 }; 
+    uint8_t accessory_id_digits[] = { chipid >> 0 & 0xf % 10,  chipid >> 4 & 0xf % 10, chipid >> 10 & 0xf % 10, 
+    	chipid >> 12 & 0xf % 10, chipid >> 16 & 0xf % 10, chipid >> 20 & 0xf % 10, chipid >> 24 & 0xf % 10, chipid >> 28 & 0xf % 10 }; 
     config.password = (char*) malloc( 11 * sizeof(char));
     char *buffer = (char*) malloc(strlen(config.password) + strlen(CUSTOM_SECTION)); 
 
