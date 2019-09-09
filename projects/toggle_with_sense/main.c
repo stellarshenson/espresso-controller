@@ -36,7 +36,8 @@
 #define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "000-00-000"
 
-#define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
+#define HOMEKIT_CUSTOM_UUID(value) (value "-03a1-4971-92bf-af2b7d833922")
+//#define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP HOMEKIT_CUSTOM_UUID("00000001")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_SHOW_SETUP(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP, \
@@ -55,7 +56,8 @@ void espresso_sense_task();
 void espresso_toggle(bool on);
 void status_led_write(bool on);
 void accessory_identify_task(void *_args);
-
+void accessory_identify_callback(homekit_value_t _value);
+void show_setup_callback();
 
 /*
  * declared characteristics:
@@ -63,8 +65,38 @@ void accessory_identify_task(void *_args);
  * show_setup - controls whether custom setup visibility
  * */
 homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(espresso_on_callback));
-//homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
+homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
 //homekit_characteristic_t wifi_reset = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .id=131, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(change_settings_callback));
+
+/**
+ * declare accessories and services
+ * */
+homekit_accessory_t *accessories[] = {
+    //accessories
+    HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_lightbulb, .services=(homekit_service_t*[]){
+	//servces - information
+	HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
+	    //characteristics
+	    HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
+	    HOMEKIT_CHARACTERISTIC(MANUFACTURER, "Stellars"),
+	    HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "001"),
+	    HOMEKIT_CHARACTERISTIC(MODEL, "Momentary Switch"),
+	    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.3"),
+	    HOMEKIT_CHARACTERISTIC(IDENTIFY, accessory_identify_callback),
+	    NULL
+	}),
+	//services - switch
+	HOMEKIT_SERVICE(SWITCH, .primary=true, .characteristics=(homekit_characteristic_t*[]){
+	    HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
+	    &espresso_on,
+	    &show_setup,
+	    NULL
+	}),
+	NULL
+    }),
+    NULL
+};
+
 
 //sense value set by the sense task
 homekit_value_t espresso_sense_on = { .bool_value = false };
@@ -157,10 +189,19 @@ void espresso_sense_task() {
 /**
  * identify accessort
  * */
-void accessory_identify(homekit_value_t _value) {
+void accessory_identify_callback(homekit_value_t _value) {
     printf("Accessory identify\n");
     xTaskCreate(accessory_identify_task, "Accessory identify", 128, NULL, 2, NULL);
 }
+
+/**
+ * show setup in the configuration app (eve)
+ * */
+void show_setup_callback() {
+   //save_settings();
+}
+
+
 
 /**
  * task run to identify the accessory
@@ -181,27 +222,6 @@ void accessory_identify_task(void *_args) {
 }
 
 
-homekit_accessory_t *accessories[] = {
-    HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_lightbulb, .services=(homekit_service_t*[]){
-        HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
-            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "Stellars"),
-            HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "001"),
-            HOMEKIT_CHARACTERISTIC(MODEL, "Momentary Switch"),
-            HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.3"),
-            HOMEKIT_CHARACTERISTIC(IDENTIFY, accessory_identify),
-            NULL
-        }),
-        HOMEKIT_SERVICE(LIGHTBULB, .primary=true, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
-            &espresso_on,
-            NULL
-        }),
-        NULL
-    }),
-    NULL
-};
-
 /**
  * initialise server config with the accessory and the initial zeroerd password
  * password will be further replaced with the generated one with accessory_id_init()
@@ -211,7 +231,13 @@ homekit_server_config_t config = {
     .password = INITIAL_ACCESSORY_PASSWORD
 };
 
+
+/**
+ * called when wifi configuration was completed
+ * this function starts the homekit server
+ * */
 void on_wifi_ready() {
+    printf("CUSTOM_SHOW_SETUP\n");
     homekit_server_init(&config);
 }
 
