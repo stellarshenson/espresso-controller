@@ -1,4 +1,4 @@
-PROGRAM = wifi_config
+PROGRAM = espresso_switch
 EXPORT_DIR = export
 
 EXTRA_COMPONENTS = \
