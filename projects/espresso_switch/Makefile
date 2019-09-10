@@ -30,6 +30,5 @@ blank:
 bootloader:
 	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x00000_rboot.bin
 
-
-#$(abspath ../../components/common/c-algorithms) \
+suite: blank all bootloader
 
