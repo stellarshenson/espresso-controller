@@ -5,10 +5,10 @@ EXTRA_COMPONENTS = \
 	extras/http-parser \
 	extras/dhcpserver \
 	$(abspath ../../components/esp-8266/esp-wifi-config) \
+	$(abspath ../../components/esp-8266/esp-serial-cmdline) \
 	$(abspath ../../components/common/wolfssl) \
 	$(abspath ../../components/common/cJSON) \
 	$(abspath ../../components/common/homekit) \
-	$(abspath ../../components/common/c-algorithms) \
 	$(abspath ../../components/common/esp-button)
 
 FLASH_SIZE ?= 32
@@ -29,3 +29,7 @@ blank:
 
 bootloader:
 	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x00000_rboot.bin
+
+
+#$(abspath ../../components/common/c-algorithms) \
+

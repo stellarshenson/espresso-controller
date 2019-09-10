@@ -21,7 +21,7 @@
 #include <task.h>
 #include <string.h> 
 
-#include <hash-string.h>
+#include <serial-cmdline.h>
 
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
@@ -33,7 +33,6 @@
 #define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	4
 #define ESPRESSO_SENSE_DELAY	1000
-#define CMD_BUFFER_SIZE		64
 
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
@@ -61,7 +60,7 @@ void accessory_identify_task(void *_args);
 void accessory_identify_callback(homekit_value_t _value);
 void show_setup_callback();
 void serial_read_task();
-void on_command(const char* cmd);
+void on_command(char* cmd);
 
 /*
  * declared characteristics:
@@ -224,42 +223,11 @@ void accessory_identify_task(void *_args) {
     vTaskDelete(NULL);
 }
 
-/**
- * listen for commands from the serial line
- * commands are crc32'd and switched over their crc32 signature
- * see "help" section of the on_command function for the commands reference
- * */
-void serial_read_task() {
-    char *cmd_buffer = calloc(CMD_BUFFER_SIZE, sizeof(char)); //command buffer
-    uint8_t i = 0; //reset char counter
-    char c = 0; //character to read
-
-    while(1) {
-	vTaskDelay(500 / portTICK_PERIOD_MS); //delay between consecutive read attempts
-	i = 0;
-	c = 0;
-
-	//read buffer until serial line is flushed
-	while( (c = uart_getc_nowait(0)) != '\xFF' && i < CMD_BUFFER_SIZE ) cmd_buffer[i++] = c;
-
-	//replace newline with terminator
-	if(strlen(cmd_buffer) > 0 && cmd_buffer[i-1] == '\n') cmd_buffer[i-1] = '\0'; 
-    
-	//process commands
-	if(strlen(cmd_buffer) > 0) { 
-	    on_command(cmd_buffer); //run command interpreter
-	    memset(cmd_buffer, 0, CMD_BUFFER_SIZE); //reset bufer to zeros
-	}
-    }
-
-    vTaskDelete(NULL);
-}
-
 
 /**
  * process commands
  * */
-void on_command(const char* cmd) {
+void on_command(char* cmd) {
     if(!strcmp(cmd, "reset")) {
 	printf("resetting system\n");
 	wifi_config_reset();
@@ -307,14 +275,6 @@ void on_command(const char* cmd) {
 }
 
 
-/**
- * initialises options from the memory and starts serial line listener
- * */
-void config_init(){
-    //listen for what is sent over the serial line
-    xTaskCreate(serial_read_task, "Serial Listener", 1024, NULL, 4, NULL);
-}
-
 
 /**
  * called when wifi configuration was completed
@@ -347,14 +307,15 @@ void accessory_password_init() {
     snprintf(buffer, strlen(config.password) + strlen(CUSTOM_SECTION) + 1, CUSTOM_SECTION, config.password);
     
     printf(">>> custom section: %s\n", buffer);
+
     //set custom section. This is used in the wifi-config library
-    custom_html_section_set(buffer);
+    custom_section_set(buffer);
 }
 
 
 void user_init(void) {
-    config_init();
-    uart_set_baud(0, 74880);
+    uart_set_baud(0, 74880); //using the same baud rate as boot loader (to not switch monitor)
+    serial_cmdline_init( on_command ); //initialise command listener with on_command callback
     accessory_password_init();
     wifi_config_init("stellars", NULL, on_wifi_ready);
     espresso_init();
