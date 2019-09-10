@@ -52,7 +52,6 @@
     .value = HOMEKIT_BOOL_(_value), \
     ##__VA_ARGS__
 
-
 //prototypes
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
 void espresso_sense_task();
@@ -62,6 +61,7 @@ void accessory_identify_task(void *_args);
 void accessory_identify_callback(homekit_value_t _value);
 void show_setup_callback();
 void serial_read_task();
+void on_command(const char* cmd);
 
 /*
  * declared characteristics:
@@ -106,10 +106,8 @@ homekit_server_config_t config = {
     .password = INITIAL_ACCESSORY_PASSWORD
 };
 
-
 //sense value set by the sense task
 homekit_value_t espresso_sense_on = { .bool_value = false };
-
 
 
 /**
@@ -240,30 +238,49 @@ void serial_read_task() {
     char *cmd_buffer = calloc(CMD_BUFFER_SIZE, sizeof(char)); //command buffer
     uint16_t cmd_hash = 0; //command hash calculated when received
     uint8_t i = 0; //reset char counter
-    char c = 0; //character to read, must be signed to detect -1
+    char c = 0; //character to read
 
     while(1) {
 	vTaskDelay(500 / portTICK_PERIOD_MS); //delay between consecutive read attempts
-	cmd_buffer[0] = '\0'; //initialise buffer to empty string
+	memset(cmd_buffer, 0, CMD_BUFFER_SIZE); //initialise buffer to ZEROS
 	cmd_hash = 0;
 	i = 0;
 	c = 0;
 
+	//read buffer until serial line is flushed
 	while( (c = uart_getc_nowait(0)) != '\xFF' && i < CMD_BUFFER_SIZE ) {
 	    //printf("read character: %c\n", c);
 	    cmd_buffer[i++] = c;
 	}
 
-	cmd_buffer[i++] = '\0'; //terminate the string
+	//replace newline with terminator
+	if(strlen(cmd_buffer) > 0 && cmd_buffer[i-1] == '\n') cmd_buffer[i-1] = '\0'; 
     
+	//process commands
 	if(strlen(cmd_buffer) > 0) {
 	    cmd_hash = string_hash(cmd_buffer); //calculate hash until \0 to switch on command later
-	    printf("intercepted %s with hash %u\n", cmd_buffer, cmd_hash);
+	    printf("intercepted command %s with hash %u\n", cmd_buffer, cmd_hash);
+	    on_command(cmd_buffer);
 	}
+
+
     }
 
     vTaskDelete(NULL);
 }
+
+
+/**
+ * process commands
+ * */
+void on_command(const char* cmd) {
+
+    if(strcmp(cmd, "reset") == 0) {
+	printf("resetting system\n");
+    }
+
+}
+
 
 /**
  * initialises options from the memory and starts serial line listener
