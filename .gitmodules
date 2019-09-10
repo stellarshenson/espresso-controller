@@ -28,6 +28,3 @@
 [submodule "components/common/c-algorithms/c-algorithms"]
 	path = components/common/c-algorithms/c-algorithms
 	url = https://github.com/fragglet/c-algorithms.git
-[submodule "components/common/libcrc/libcrc"]
-	path = components/common/libcrc/libcrc
-	url = https://github.com/lammertb/libcrc.git
