@@ -25,3 +25,6 @@
 [submodule "components/common/esp-button"]
 	path = components/common/esp-button
 	url = https://github.com/maximkulkin/esp-button.git
+[submodule "components/common/c-algorithms/c-algorithms"]
+	path = components/common/c-algorithms/c-algorithms
+	url = https://github.com/fragglet/c-algorithms.git
