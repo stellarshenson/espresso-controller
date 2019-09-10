@@ -1,4 +1,4 @@
-PROGRAM = espresso_switch
+PROGRAM = 0x20000_espresso_switch
 EXPORT_DIR = export
 
 EXTRA_COMPONENTS = \
@@ -8,6 +8,7 @@ EXTRA_COMPONENTS = \
 	$(abspath ../../components/common/wolfssl) \
 	$(abspath ../../components/common/cJSON) \
 	$(abspath ../../components/common/homekit) \
+	$(abspath ../../components/common/c-algorithms) \
 	$(abspath ../../components/common/esp-button)
 
 FLASH_SIZE ?= 32
@@ -23,5 +24,8 @@ copy:
 	cp firmware/$(PROGRAM).bin $(EXPORT_DIR)/
 
 blank:
-	dd if=/dev/zero of=firmware/blank_1M.bin count=1 bs=1M 
+	dd if=/dev/zero of=firmware/0x10000_blank_1M.bin count=1 bs=1MB 
 	#dd if=/dev/zero count=1 bs=1M | tr '\000' '\377' > firmware/blank_1M.bin
+
+bootloader:
+	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x00000_rboot.bin

@@ -21,6 +21,8 @@
 #include <task.h>
 #include <string.h> 
 
+#include <hash-string.h>
+
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
 #include <wifi_config.h>
@@ -31,6 +33,7 @@
 #define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	4
 #define ESPRESSO_SENSE_DELAY	3000
+#define CMD_BUFFER_SIZE		64
 
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
@@ -229,21 +232,36 @@ void accessory_identify_task(void *_args) {
 
 /**
  * listen for commands from the serial line
+ * commands are crc32'd and switched over their crc32 signature
  * commands: 
- * /reset - to reset devices to factory settings and restart device
+ * reset - to reset devices to factory settings and restart device
  * */
 void serial_read_task() {
-    char* buffer = calloc(64, 0);
+    char *cmd_buffer = calloc(CMD_BUFFER_SIZE, sizeof(char)); //command buffer
+    uint16_t cmd_hash = 0; //command hash calculated when received
+    uint8_t i = 0; //reset char counter
+    char c = 0; //character to read, must be signed to detect -1
+
     while(1) {
-	vTaskDelay(500 / portTICK_PERIOD_MS);
-	int c = uart_getc_nowait(0);
+	vTaskDelay(500 / portTICK_PERIOD_MS); //delay between consecutive read attempts
+	cmd_buffer[0] = '\0'; //initialise buffer to empty string
+	cmd_hash = 0;
+	i = 0;
+	c = 0;
+
+	while( (c = uart_getc_nowait(0)) != '\xFF' && i < CMD_BUFFER_SIZE ) {
+	    //printf("read character: %c\n", c);
+	    cmd_buffer[i++] = c;
+	}
+
+	cmd_buffer[i++] = '\0'; //terminate the string
     
-	if(c != -1) {
-	    scanf("%s", buffer);
-	    printf("intercepted %s\n", buffer);
-	    buffer[0] = 0; //reset buffer
+	if(strlen(cmd_buffer) > 0) {
+	    cmd_hash = string_hash(cmd_buffer); //calculate hash until \0 to switch on command later
+	    printf("intercepted %s with hash %u\n", cmd_buffer, cmd_hash);
 	}
     }
+
     vTaskDelete(NULL);
 }
 
@@ -252,7 +270,7 @@ void serial_read_task() {
  * */
 void config_init(){
     //listen for what is sent over the serial line
-    xTaskCreate(serial_read_task, "Serial Listener", 512, NULL, 4, NULL);
+    xTaskCreate(serial_read_task, "Serial Listener", 1000, NULL, 4, NULL);
 }
 
 
