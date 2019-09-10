@@ -32,7 +32,7 @@
 #define GPIO_ESPRESSO_TOGGLE	2
 #define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	4
-#define ESPRESSO_SENSE_DELAY	3000
+#define ESPRESSO_SENSE_DELAY	1000
 #define CMD_BUFFER_SIZE		64
 
 //pairing password to display, this will be embedded in the AP homepage
@@ -163,7 +163,7 @@ void espresso_init() {
     status_led_write(false);
     
     //enable sense task
-    xTaskCreate(espresso_sense_task, "Espresso Sense", 255, NULL, 3, NULL);
+    xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 3, NULL);
 }
 
 
@@ -263,7 +263,9 @@ void on_command(const char* cmd) {
     if(!strcmp(cmd, "reset")) {
 	printf("resetting system\n");
 	wifi_config_reset();
+	vTaskDelay(500 / portTICK_PERIOD_MS); 	
 	homekit_server_reset();
+	vTaskDelay(500 / portTICK_PERIOD_MS); 	
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_wifi") ) {
 	printf("resetting wifi settings\n");
@@ -310,7 +312,7 @@ void on_command(const char* cmd) {
  * */
 void config_init(){
     //listen for what is sent over the serial line
-    xTaskCreate(serial_read_task, "Serial Listener", 1000, NULL, 4, NULL);
+    xTaskCreate(serial_read_task, "Serial Listener", 1024, NULL, 4, NULL);
 }
 
 
@@ -322,6 +324,7 @@ void on_wifi_ready() {
     printf("CUSTOM_SHOW_SETUP\n");
     homekit_server_init(&config);
 }
+
 
 /**
  * generates accessory password from the chip_id, turns 32 bit chipID into 4-bit chunks and gets modulo 9 from each
@@ -345,7 +348,7 @@ void accessory_password_init() {
     
     printf(">>> custom section: %s\n", buffer);
     //set custom section. This is used in the wifi-config library
-    custom_section_set(buffer);
+    custom_html_section_set(buffer);
 }
 
 
