@@ -291,6 +291,7 @@ void on_command(const char* cmd) {
 	printf("Espresso machine status: %u\n", espresso_sense_on.bool_value);
     } else if( !strcmp(cmd, "help") ) {
 	printf("Available commands:\n\
+	reboot - reboots the device, no changes to the settings\n\
 	reset - resets the device settings to factory\n\
 	reset_accessory - resets pairing and accessory information and restarts homekit server\n\
 	reset_wifi - resets wifi ssid and password and reboots\n\
