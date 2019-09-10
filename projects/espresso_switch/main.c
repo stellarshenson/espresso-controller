@@ -107,7 +107,9 @@ homekit_server_config_t config = {
 };
 
 //sense value set by the sense task
-homekit_value_t espresso_sense_on = { .bool_value = false };
+volatile homekit_value_t espresso_sense_on = { .bool_value = false }; //changed by internal sense task
+volatile homekit_value_t simulate_on = { .bool_value = false }; //changed by commands
+volatile bool simulation_enabled = false;  //when true, status is read only from commands until next reboot
 
 
 /**
@@ -144,7 +146,6 @@ void espresso_toggle(bool on) {
  * LED status light
  * */
 void status_led_write(bool on) {
-    printf("led state: %u\n", on );
     gpio_write(GPIO_STATUS_LED, on ? 0 : 1);
 }
 
@@ -157,8 +158,8 @@ void espresso_init() {
     //enable ESPRESSO_TOGGLE pin for OUTPUT and ESPRESSO_SENSE for INPUT
     gpio_enable(GPIO_ESPRESSO_TOGGLE, GPIO_OUTPUT);
     gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
-    gpio_set_pullup(GPIO_ESPRESSO_TOGGLE, false, false);
-    gpio_set_pullup(GPIO_ESPRESSO_SENSE, false, false);
+    gpio_set_pullup(GPIO_ESPRESSO_TOGGLE, true, true);
+    gpio_set_pullup(GPIO_ESPRESSO_SENSE, true, true);
     status_led_write(false);
     
     //enable sense task
@@ -167,26 +168,21 @@ void espresso_init() {
 
 
 /**
+ * monitor the status of espresso power
  * run this in a loop, find if the sense pin changed state
  * */
 void espresso_sense_task() {
-    //monitor the status of espresso power
-
-    //get the status and notify homekit
-    //on.bool_value = gpio_read(GPIO_ESPRESSO_TOGGLE);
-    //bool on = gpio_read(GPIO_ESPRESSO_TOGGLE);
-    //homekit_characteristic_notify(&espresso_on, on);
-
 
     //keep monitoring by going idle for a predefined time and then sense again.
     //when status of the espresso changed - notify homekit
     while(1) {
 	vTaskDelay(ESPRESSO_SENSE_DELAY / portTICK_PERIOD_MS);
-	//on.bool_value = gpio_read(GPIO_ESPRESSO_TOGGLE);
-	espresso_sense_on.bool_value = (rand() % 10 == 0 ? 0 : 1);
-	//gpio_read(GPIO_ESPRESSO_TOGGLE);
-	//printf("espresso sense, status:  %d\n", on.bool_value);
-	printf("espresso sense: %d\n", espresso_sense_on.bool_value);
+	
+	//by default read status from GPIO_ESPRESSO_SENSE. Otherwise read from simulation
+	if(! simulation_enabled) espresso_sense_on.bool_value = gpio_read(GPIO_ESPRESSO_SENSE);
+	else espresso_sense_on.bool_value = simulate_on.bool_value; //read simulation value
+
+	//when internal state different from homekit state - notify
 	if( espresso_sense_on.bool_value != espresso_on.value.bool_value ) homekit_characteristic_notify(&espresso_on, espresso_sense_on);
     }
 
@@ -231,39 +227,29 @@ void accessory_identify_task(void *_args) {
 /**
  * listen for commands from the serial line
  * commands are crc32'd and switched over their crc32 signature
- * commands: 
- * reset - to reset devices to factory settings and restart device
+ * see "help" section of the on_command function for the commands reference
  * */
 void serial_read_task() {
     char *cmd_buffer = calloc(CMD_BUFFER_SIZE, sizeof(char)); //command buffer
-    uint16_t cmd_hash = 0; //command hash calculated when received
     uint8_t i = 0; //reset char counter
     char c = 0; //character to read
 
     while(1) {
 	vTaskDelay(500 / portTICK_PERIOD_MS); //delay between consecutive read attempts
-	memset(cmd_buffer, 0, CMD_BUFFER_SIZE); //initialise buffer to ZEROS
-	cmd_hash = 0;
 	i = 0;
 	c = 0;
 
 	//read buffer until serial line is flushed
-	while( (c = uart_getc_nowait(0)) != '\xFF' && i < CMD_BUFFER_SIZE ) {
-	    //printf("read character: %c\n", c);
-	    cmd_buffer[i++] = c;
-	}
+	while( (c = uart_getc_nowait(0)) != '\xFF' && i < CMD_BUFFER_SIZE ) cmd_buffer[i++] = c;
 
 	//replace newline with terminator
 	if(strlen(cmd_buffer) > 0 && cmd_buffer[i-1] == '\n') cmd_buffer[i-1] = '\0'; 
     
 	//process commands
-	if(strlen(cmd_buffer) > 0) {
-	    cmd_hash = string_hash(cmd_buffer); //calculate hash until \0 to switch on command later
-	    printf("intercepted command %s with hash %u\n", cmd_buffer, cmd_hash);
-	    on_command(cmd_buffer);
+	if(strlen(cmd_buffer) > 0) { 
+	    on_command(cmd_buffer); //run command interpreter
+	    memset(cmd_buffer, 0, CMD_BUFFER_SIZE); //reset bufer to zeros
 	}
-
-
     }
 
     vTaskDelete(NULL);
@@ -274,11 +260,47 @@ void serial_read_task() {
  * process commands
  * */
 void on_command(const char* cmd) {
-
-    if(strcmp(cmd, "reset") == 0) {
+    if(!strcmp(cmd, "reset")) {
 	printf("resetting system\n");
+	wifi_config_reset();
+	homekit_server_reset();
+	sdk_system_restart();
+    } else if( !strcmp(cmd, "reset_wifi") ) {
+	printf("resetting wifi settings\n");
+	wifi_config_reset();
+	sdk_system_restart();
+    } else if( !strcmp(cmd, "reset_accessory") ) {
+	printf("resetting accessory pairing and settings\n");
+	homekit_server_reset();
+	sdk_system_restart();
+    } else if( !strcmp(cmd, "reboot") ) {
+	printf("rebooting\n");
+	sdk_system_restart();
+    } else if( !strcmp(cmd, "simulate_on") ) {
+	printf("Simulating espresso internal on\n");
+	simulation_enabled = true;
+	simulate_on.bool_value = true;
+    } else if( !strcmp(cmd, "simulate_off") ) {
+	printf("Simulating espresso internal off\n");
+	simulation_enabled = true;
+	simulate_on.bool_value = false;
+    } else if( !strcmp(cmd, "simulation_disable") ) {
+	printf("Disabling simulation\n");
+	simulation_enabled = false;
+    } else if( !strcmp(cmd, "status") ) {
+	printf("Espresso machine status: %u\n", espresso_sense_on.bool_value);
+    } else if( !strcmp(cmd, "help") ) {
+	printf("Available commands:\n\
+	reset - resets the device settings to factory\n\
+	reset_accessory - resets pairing and accessory information and restarts homekit server\n\
+	reset_wifi - resets wifi ssid and password and reboots\n\
+	switch_on - turns the espresso machine on\n\
+	switch_off - turns the espresso machine off\n\
+	simulate_on - simulates espresso power state on\n\
+	simulate_off - simulates espresso power state off\n\
+	simulation_disable - disable simulation\n\
+	status - returns the status of the espresso power circuit\n");
     }
-
 }
 
 
