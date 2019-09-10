@@ -20,8 +20,8 @@ serial_cmdline_config_t  *config;
 
 /**
  * listen for commands from the serial line
- * commands are crc32'd and switched over their crc32 signature
- * see "help" section of the on_command function for the commands reference
+ * uses callback function passed at the initialisation
+ * to process commands. Commands are not parameterised (yet)
  * */
 void serial_cmdline_task() {
     uint8_t i = 0; //reset char counter
