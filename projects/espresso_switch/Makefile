@@ -13,8 +13,8 @@ EXTRA_COMPONENTS = \
 
 FLASH_SIZE ?= 32
 
-EXTRA_CFLAGS += -I../.. -DHOMEKIT_SHORT_APPLE_UUIDS
 
+EXTRA_CFLAGS += -I../.. -DHOMEKIT_SHORT_APPLE_UUIDS  -DUUID="help"
 include $(SDK_PATH)/common.mk
 
 monitor:
@@ -31,4 +31,3 @@ bootloader:
 	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x00000_rboot.bin
 
 suite: blank all bootloader
-

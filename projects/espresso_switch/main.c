@@ -29,6 +29,9 @@
 #include <button.h>
 #include <espressif/esp_system.h>
 
+#define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
+#define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
+
 #define GPIO_ESPRESSO_TOGGLE	2
 #define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	4
@@ -39,7 +42,7 @@
 #define INITIAL_ACCESSORY_PASSWORD "000-00-000"
 
 #define HOMEKIT_CUSTOM_UUID(value) (value "-03a1-4971-92bf-af2b7d833922")
-//#define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
+#define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP HOMEKIT_CUSTOM_UUID("00000001")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_SHOW_SETUP(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP, \
@@ -131,7 +134,7 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, voi
  * the the on-and-off toggle will turn espresso machine off
  * */
 void espresso_toggle(bool on) {
-    printf("espresso toggle %u, current state is %u\n", on, espresso_sense_on.bool_value);
+    INFO("[Homekit] espresso toggle %u, current state is %u\n", on, espresso_sense_on.bool_value);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
     vTaskDelay(300 / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
@@ -192,7 +195,7 @@ void espresso_sense_task() {
  * identify accessort
  * */
 void accessory_identify_callback(homekit_value_t _value) {
-    printf("Accessory identify\n");
+    INFO("[Homekit] Accessory identify");
     xTaskCreate(accessory_identify_task, "Accessory identify", 128, NULL, 2, NULL);
 }
 
@@ -229,48 +232,48 @@ void accessory_identify_task(void *_args) {
  * */
 void on_command(char* cmd) {
     if(!strcmp(cmd, "reset")) {
-	printf("resetting system\n");
+	INFO("[CMD] resetting system\n");
 	wifi_config_reset();
 	vTaskDelay(500 / portTICK_PERIOD_MS); 	
 	homekit_server_reset();
 	vTaskDelay(500 / portTICK_PERIOD_MS); 	
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_wifi") ) {
-	printf("resetting wifi settings\n");
+	INFO("[CMD] resetting wifi settings\n");
 	wifi_config_reset();
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_accessory") ) {
-	printf("resetting accessory pairing and settings\n");
+	INFO("[CMD] resetting accessory pairing and settings\n");
 	homekit_server_reset();
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reboot") ) {
-	printf("rebooting\n");
+	INFO("[CMD] rebooting\n");
 	sdk_system_restart();
     } else if( !strcmp(cmd, "simulate_on") ) {
-	printf("Simulating espresso internal on\n");
+	INFO("[CMD] Simulating espresso internal on\n");
 	simulation_enabled = true;
 	simulate_on.bool_value = true;
     } else if( !strcmp(cmd, "simulate_off") ) {
-	printf("Simulating espresso internal off\n");
+	INFO("[CMD] Simulating espresso internal off\n");
 	simulation_enabled = true;
 	simulate_on.bool_value = false;
     } else if( !strcmp(cmd, "simulation_disable") ) {
-	printf("Disabling simulation\n");
+	INFO("[CMD] Disabling simulation\n");
 	simulation_enabled = false;
     } else if( !strcmp(cmd, "status") ) {
-	printf("Espresso machine status: %u\n", espresso_sense_on.bool_value);
+	INFO("[CMD] Espresso machine status: %u\n", espresso_sense_on.bool_value);
     } else if( !strcmp(cmd, "help") ) {
-	printf("Available commands:\n\
-	reboot - reboots the device, no changes to the settings\n\
-	reset - resets the device settings to factory\n\
-	reset_accessory - resets pairing and accessory information and restarts homekit server\n\
-	reset_wifi - resets wifi ssid and password and reboots\n\
-	switch_on - turns the espresso machine on\n\
-	switch_off - turns the espresso machine off\n\
-	simulate_on - simulates espresso power state on\n\
-	simulate_off - simulates espresso power state off\n\
-	simulation_disable - disable simulation\n\
-	status - returns the status of the espresso power circuit\n");
+	INFO("[CMD] Available commands:\n\
+    reboot - reboots the device, no changes to the settings\n\
+    reset - resets the device settings to factory\n\
+    reset_accessory - resets pairing and accessory information and restarts homekit server\n\
+    reset_wifi - resets wifi ssid and password and reboots\n\
+    switch_on - turns the espresso machine on\n\
+    switch_off - turns the espresso machine off\n\
+    imulate_on - simulates espresso power state on\n\
+    imulate_off - simulates espresso power state off\n\
+    simulation_disable - disable simulation\n\
+    status - returns the status of the espresso power circuit\n");
     }
 }
 
@@ -281,7 +284,6 @@ void on_command(char* cmd) {
  * this function starts the homekit server
  * */
 void on_wifi_ready() {
-    printf("CUSTOM_SHOW_SETUP\n");
     homekit_server_init(&config);
 }
 
@@ -301,12 +303,11 @@ void accessory_password_init() {
     snprintf(config.password, 11, "%u%u%u-%u%u-%u%u%u", accessory_id_digits[0], accessory_id_digits[1], accessory_id_digits[2], 
     	                               accessory_id_digits[3], accessory_id_digits[4], accessory_id_digits[5], accessory_id_digits[6], accessory_id_digits[7]);
 
-    printf(">>> accessory password: %s\n", config.password);
+    INFO("[Homekit] accessory password: %s\n", config.password);
 
     //write custom section with the password
     snprintf(buffer, strlen(config.password) + strlen(CUSTOM_SECTION) + 1, CUSTOM_SECTION, config.password);
     
-    printf(">>> custom section: %s\n", buffer);
 
     //set custom section. This is used in the wifi-config library
     wifi_config_custom_section_set(buffer);
@@ -316,7 +317,7 @@ void accessory_password_init() {
 void user_init(void) {
     uart_set_baud(0, 74880); //using the same baud rate as boot loader (to not switch monitor)
     serial_cmdline_init( on_command ); //initialise command listener with on_command callback
-    accessory_password_init();
     wifi_config_init("stellars", NULL, on_wifi_ready);
+    accessory_password_init();
     espresso_init();
 }
