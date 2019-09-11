@@ -29,6 +29,16 @@
 #include <button.h>
 #include <espressif/esp_system.h>
 
+#ifndef PROTO_UUID
+#define PROTO_UUID "-03a1-4971-92bf-af2b7d833922"
+#warning "PROTO_UUID not supplied, using predefined one: " PROTO_UUID
+#endif
+
+#ifndef UUID
+#define UUID "01010101" PROTO_UUID
+#warning "UUID not supplied, using predefined one: " UUID
+#endif
+
 #define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
 #define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
 
@@ -41,7 +51,7 @@
 #define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "000-00-000"
 
-#define HOMEKIT_CUSTOM_UUID(value) (value "-03a1-4971-92bf-af2b7d833922")
+#define HOMEKIT_CUSTOM_UUID(value) (value PROTO_UUID)
 #define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP HOMEKIT_CUSTOM_UUID("00000001")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_SHOW_SETUP(_value, ...) \
@@ -166,6 +176,9 @@ void espresso_init() {
     
     //enable sense task
     xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 3, NULL);
+
+    //print message
+    INFO("Espresso machine initialised with build UUID: %s", UUID);
 }
 
 
