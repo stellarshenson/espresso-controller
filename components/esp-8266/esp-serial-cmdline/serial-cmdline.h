@@ -7,14 +7,6 @@
  *
  */
 
-#ifndef CMD_BUFFER_SIZE
-#define CMD_BUFFER_SIZE		64
-#endif
-
-#ifndef CMD_UART_NUM
-#define CMD_UART_NUM		0
-#endif
-
 /**
  * this function initialises the listener and starts the 
  * the command interpreter task (it runs asynchronously)

@@ -31,12 +31,10 @@
 
 #ifndef PROTO_UUID
 #define PROTO_UUID "-03a1-4971-92bf-af2b7d833922"
-#warning "PROTO_UUID not supplied, using predefined one: " PROTO_UUID
 #endif
 
 #ifndef UUID
 #define UUID "01010101" PROTO_UUID
-#warning "UUID not supplied, using predefined one: " UUID
 #endif
 
 #define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
@@ -48,9 +46,10 @@
 #define ESPRESSO_SENSE_DELAY	1000
 
 //pairing password to display, this will be embedded in the AP homepage
-#define CUSTOM_SECTION "<p><b>Homekit Accessory ID:</b><br> %s </p>"
-#define INITIAL_ACCESSORY_PASSWORD "000-00-000"
+#define CUSTOM_HTML "<p><b>Homekit Accessory ID:</b><br> %s </p>"
+#define INITIAL_ACCESSORY_PASSWORD "111-11-111"
 
+/*
 #define HOMEKIT_CUSTOM_UUID(value) (value PROTO_UUID)
 #define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP HOMEKIT_CUSTOM_UUID("00000001")
@@ -63,6 +62,7 @@
     | homekit_permissions_notify, \
     .value = HOMEKIT_BOOL_(_value), \
     ##__VA_ARGS__
+*/
 
 //prototypes
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
@@ -71,6 +71,7 @@ void espresso_toggle(bool on);
 void status_led_write(bool on);
 void accessory_identify_task(void *_args);
 void accessory_identify_callback(homekit_value_t _value);
+void led_identify(homekit_value_t _value);
 void show_setup_callback();
 void serial_read_task();
 void on_command(char* cmd);
@@ -81,7 +82,7 @@ void on_command(char* cmd);
  * show_setup - controls whether custom setup visibility
  * */
 homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(espresso_on_callback));
-homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
+//homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
 //homekit_characteristic_t wifi_reset = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .id=131, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(change_settings_callback));
 
 // declare accessories / services and characteristics
@@ -101,10 +102,9 @@ homekit_accessory_t *accessories[] = {
 	    NULL
 	}),
 	//services - switch
-	HOMEKIT_SERVICE(SWITCH, .primary=true, .characteristics=(homekit_characteristic_t*[]){
+	HOMEKIT_SERVICE(LIGHTBULB, .primary=true, .characteristics=(homekit_characteristic_t*[]){
 	    HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
 	    &espresso_on,
-	    &show_setup,
 	    NULL
 	}),
 	NULL
@@ -175,10 +175,7 @@ void espresso_init() {
     status_led_write(false);
     
     //enable sense task
-    xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 3, NULL);
-
-    //print message
-    INFO("Espresso machine initialised with build UUID: %s", UUID);
+    xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 1, NULL);
 }
 
 
@@ -202,6 +199,7 @@ void espresso_sense_task() {
     }
 
     vTaskDelete(NULL);
+
 }
 
 /**
@@ -225,16 +223,16 @@ void show_setup_callback() {
  * task run to identify the accessory
  * */
 void accessory_identify_task(void *_args) {
-    for (int i=0; i<3; i++) {
+   for (int i=0; i<3; i++) {
         for (int j=0; j<2; j++) {
             status_led_write(true);
             vTaskDelay(100 / portTICK_PERIOD_MS);
              status_led_write(false);
             vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
+       }
 
-        vTaskDelay(250 / portTICK_PERIOD_MS);
-    }
+       vTaskDelay(250 / portTICK_PERIOD_MS);
+   }
 
     vTaskDelete(NULL);
 }
@@ -245,38 +243,38 @@ void accessory_identify_task(void *_args) {
  * */
 void on_command(char* cmd) {
     if(!strcmp(cmd, "reset")) {
-	INFO("[CMD] resetting system\n");
+	INFO("espresso_switch: resetting system\n");
 	wifi_config_reset();
 	vTaskDelay(500 / portTICK_PERIOD_MS); 	
 	homekit_server_reset();
 	vTaskDelay(500 / portTICK_PERIOD_MS); 	
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_wifi") ) {
-	INFO("[CMD] resetting wifi settings\n");
+	INFO("espresso_switch: resetting wifi settings\n");
 	wifi_config_reset();
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_accessory") ) {
-	INFO("[CMD] resetting accessory pairing and settings\n");
+	INFO("espresso_switch: resetting accessory pairing and settings\n");
 	homekit_server_reset();
 	sdk_system_restart();
     } else if( !strcmp(cmd, "reboot") ) {
-	INFO("[CMD] rebooting\n");
+	INFO("espresso_switch: rebooting\n");
 	sdk_system_restart();
     } else if( !strcmp(cmd, "simulate_on") ) {
-	INFO("[CMD] Simulating espresso internal on\n");
+	INFO("espresso_switch: Simulating espresso internal on\n");
 	simulation_enabled = true;
 	simulate_on.bool_value = true;
     } else if( !strcmp(cmd, "simulate_off") ) {
-	INFO("[CMD] Simulating espresso internal off\n");
+	INFO("espresso_switch: Simulating espresso internal off\n");
 	simulation_enabled = true;
 	simulate_on.bool_value = false;
     } else if( !strcmp(cmd, "simulation_disable") ) {
-	INFO("[CMD] Disabling simulation\n");
+	INFO("espresso_switch: Disabling simulation\n");
 	simulation_enabled = false;
     } else if( !strcmp(cmd, "status") ) {
-	INFO("[CMD] Espresso machine status: %u\n", espresso_sense_on.bool_value);
+	INFO("espresso_switch: Espresso machine status: %u\n", espresso_sense_on.bool_value);
     } else if( !strcmp(cmd, "help") ) {
-	INFO("[CMD] Available commands:\n\
+	INFO("espresso_switch: Available commands:\n\
     reboot - reboots the device, no changes to the settings\n\
     reset - resets the device settings to factory\n\
     reset_accessory - resets pairing and accessory information and restarts homekit server\n\
@@ -290,6 +288,12 @@ void on_command(char* cmd) {
     }
 }
 
+/**
+ * homekit server event listener
+ * */
+void on_homekit_event(homekit_event_t event) {
+    if (event == HOMEKIT_EVENT_SERVER_INITIALIZED) serial_cmdline_init(on_command);
+}
 
 
 /**
@@ -297,6 +301,8 @@ void on_command(char* cmd) {
  * this function starts the homekit server
  * */
 void on_wifi_ready() {
+    INFO("espresso_switch: starting homekit server");
+    //config.on_event = on_homekit_event;
     homekit_server_init(&config);
 }
 
@@ -306,31 +312,34 @@ void on_wifi_ready() {
  * and generates the custom section to be displayed with the wifi_config AP server
  * */
 void accessory_password_init() {
+
     uint32_t chipid = sdk_system_get_chip_id();
     uint8_t accessory_id_digits[] = { chipid >> 0 & 0xf % 10,  chipid >> 4 & 0xf % 10, chipid >> 10 & 0xf % 10, 
     	chipid >> 12 & 0xf % 10, chipid >> 16 & 0xf % 10, chipid >> 20 & 0xf % 10, chipid >> 24 & 0xf % 10, chipid >> 28 & 0xf % 10 }; 
-    config.password = (char*) malloc( 11 * sizeof(char));
-    char *buffer = (char*) malloc(strlen(config.password) + strlen(CUSTOM_SECTION)); 
+    config.password = (char*) calloc( 12 , sizeof(char));
+    char *buffer = (char*) calloc(strlen(config.password) + strlen(CUSTOM_HTML), sizeof(char)); 
 
     //write accessory password 
     snprintf(config.password, 11, "%u%u%u-%u%u-%u%u%u", accessory_id_digits[0], accessory_id_digits[1], accessory_id_digits[2], 
     	                               accessory_id_digits[3], accessory_id_digits[4], accessory_id_digits[5], accessory_id_digits[6], accessory_id_digits[7]);
-
-    INFO("[Homekit] accessory password: %s\n", config.password);
+    
+    INFO("espresso_switch: accessory password: %s\n", config.password);
 
     //write custom section with the password
-    snprintf(buffer, strlen(config.password) + strlen(CUSTOM_SECTION) + 1, CUSTOM_SECTION, config.password);
+    snprintf(buffer, strlen(config.password) + strlen(CUSTOM_HTML) + 1, CUSTOM_HTML, config.password);
     
 
     //set custom section. This is used in the wifi-config library
     wifi_config_set_custom_html(buffer);
+
 }
 
 
 void user_init(void) {
     uart_set_baud(0, 74880); //using the same baud rate as boot loader (to not switch monitor)
-    serial_cmdline_init( on_command ); //initialise command listener with on_command callback
+    serial_cmdline_init(on_command);
     wifi_config_init("stellars", NULL, on_wifi_ready);
     accessory_password_init();
     espresso_init();
 }
+
