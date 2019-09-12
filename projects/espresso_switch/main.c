@@ -102,7 +102,7 @@ homekit_accessory_t *accessories[] = {
 	    NULL
 	}),
 	//services - switch
-	HOMEKIT_SERVICE(LIGHTBULB, .primary=true, .characteristics=(homekit_characteristic_t*[]){
+	HOMEKIT_SERVICE(SWITCH, .primary=true, .characteristics=(homekit_characteristic_t*[]){
 	    HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
 	    &espresso_on,
 	    NULL
@@ -144,7 +144,7 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, voi
  * the the on-and-off toggle will turn espresso machine off
  * */
 void espresso_toggle(bool on) {
-    INFO("[Homekit] espresso toggle %u, current state is %u\n", on, espresso_sense_on.bool_value);
+    INFO("espresso_switch: espresso toggle %u, current power state is %u\n", on, espresso_sense_on.bool_value);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
     vTaskDelay(300 / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
@@ -323,7 +323,7 @@ void accessory_password_init() {
     snprintf(config.password, 11, "%u%u%u-%u%u-%u%u%u", accessory_id_digits[0], accessory_id_digits[1], accessory_id_digits[2], 
     	                               accessory_id_digits[3], accessory_id_digits[4], accessory_id_digits[5], accessory_id_digits[6], accessory_id_digits[7]);
     
-    INFO("espresso_switch: accessory password: %s\n", config.password);
+    INFO("espresso_switch: accessory password: %s and chip id: %d\n", config.password, chipid);
 
     //write custom section with the password
     snprintf(buffer, strlen(config.password) + strlen(CUSTOM_HTML) + 1, CUSTOM_HTML, config.password);
@@ -338,7 +338,7 @@ void accessory_password_init() {
 void user_init(void) {
     uart_set_baud(0, 74880); //using the same baud rate as boot loader (to not switch monitor)
     serial_cmdline_init(on_command);
-    wifi_config_init("stellars", NULL, on_wifi_ready);
+    wifi_config_init("espresso-switch", NULL, on_wifi_ready);
     accessory_password_init();
     espresso_init();
 }
