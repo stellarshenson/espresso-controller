@@ -323,7 +323,7 @@ void accessory_password_init() {
     
 
     //set custom section. This is used in the wifi-config library
-    wifi_config_custom_section_set(buffer);
+    wifi_config_set_custom_html(buffer);
 }
 
 
