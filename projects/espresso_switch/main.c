@@ -46,12 +46,13 @@
 #define GPIO_STATUS_LED		2
 #define GPIO_ESPRESSO_SENSE	12
 #define ESPRESSO_SENSE_DELAY	1000
+#define ESPRESSO_TOGGLE_TIME    200
 
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_HTML "<p><b>Homekit Accessory ID:</b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "111-11-111"
 
-/*
+
 #define HOMEKIT_CUSTOM_UUID(value) (value PROTO_UUID)
 #define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_SHOW_SETUP HOMEKIT_CUSTOM_UUID("00000001")
@@ -64,7 +65,7 @@
     | homekit_permissions_notify, \
     .value = HOMEKIT_BOOL_(_value), \
     ##__VA_ARGS__
-*/
+
 
 //prototypes
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
@@ -86,7 +87,7 @@ void homekit_password_set(const char *password);
  * show_setup - controls whether custom setup visibility
  * */
 homekit_characteristic_t espresso_on = HOMEKIT_CHARACTERISTIC_(ON, false, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(espresso_on_callback));
-//homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
+homekit_characteristic_t show_setup = HOMEKIT_CHARACTERISTIC_(CUSTOM_SHOW_SETUP, true, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(show_setup_callback));
 //homekit_characteristic_t wifi_reset = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .id=131, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(change_settings_callback));
 
 // declare accessories / services and characteristics
@@ -109,7 +110,9 @@ homekit_accessory_t *accessories[] = {
 	HOMEKIT_SERVICE(SWITCH, .primary=true, .characteristics=(homekit_characteristic_t*[]){
 	    HOMEKIT_CHARACTERISTIC(NAME, "Espresso Switch"),
 	    &espresso_on,
+	    &show_setup,
 	    NULL
+
 	}),
 	NULL
     }),
@@ -117,7 +120,7 @@ homekit_accessory_t *accessories[] = {
 };
 
 //homekit server configuration - initial password and the list of declared accessories 
-homekit_server_config_t config = {
+homekit_server_config_t homekit_config = {
     .accessories = accessories,
     .password = NULL 
 };
@@ -150,7 +153,7 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, voi
 void espresso_toggle(bool on) {
     INFO("espresso_switch: espresso toggle %u, current power state is %u\n", on, espresso_sense_on.bool_value);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
-    vTaskDelay(300 / portTICK_PERIOD_MS);
+    vTaskDelay(ESPRESSO_TOGGLE_TIME / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
 
     //set value
@@ -314,7 +317,7 @@ void on_homekit_event(homekit_event_t event) {
 void on_wifi_ready() {
     INFO("espresso_switch: starting homekit server");
     //config.on_event = on_homekit_event;
-    homekit_server_init(&config);
+    homekit_server_init(&homekit_config);
 }
 
 
@@ -324,21 +327,20 @@ void on_wifi_ready() {
  * */
 void homekit_password_init() {
 
-    homekit_password_get(&config.password);
-    if (config.password == NULL) {
+    if (homekit_config.password == NULL) {
 	uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
-	config.password = (char*) calloc( 12 , sizeof(char));
+	homekit_config.password = (char*) calloc( 12 , sizeof(char));
 
 	//write accessory password and save it
-	snprintf(config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
-	homekit_password_set(config.password);
+	snprintf(homekit_config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
+	homekit_password_set(homekit_config.password); //when password was generated, save it to sysparams
     }
 
-    INFO("espresso_switch: accessory password: %s\n", config.password);
+    INFO("espresso_switch: accessory password: %s\n", homekit_config.password);
 
     //write custom section with the password
-    char *buffer = (char*) calloc(strlen(config.password) + strlen(CUSTOM_HTML), sizeof(char)); 
-    snprintf(buffer, strlen(config.password) + strlen(CUSTOM_HTML) + 1, CUSTOM_HTML, config.password);
+    char *buffer = (char*) calloc(strlen(homekit_config.password) + strlen(CUSTOM_HTML), sizeof(char)); 
+    snprintf(buffer, strlen(homekit_config.password) + strlen(CUSTOM_HTML) + 1, CUSTOM_HTML, homekit_config.password);
     
 
     //set custom section. This is used in the wifi-config library
@@ -346,9 +348,16 @@ void homekit_password_init() {
 
 }
 
+/**
+ * restore configuration params from memory / sysparam settings
+ * */
+void restore_settings() {
+    homekit_password_get(&homekit_config.password);
+}
 
 void user_init(void) {
     uart_set_baud(0, 74880); //using the same baud rate as boot loader (to not switch monitor)
+    restore_settings();
     serial_cmdline_init(on_command);
     wifi_config_init("espresso-switch", NULL, on_wifi_ready);
     homekit_password_init();
@@ -363,5 +372,6 @@ void homekit_password_get(char **password) {
 void homekit_password_set(const char *password) {
     sysparam_set_string("homekit_password", password);
 }
+
 
 

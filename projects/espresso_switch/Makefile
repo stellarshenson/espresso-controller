@@ -33,6 +33,7 @@ blank:
 
 bootloader:
 	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x00000_rboot.bin
+	cp $(SDK_PATH)/bootloader/firmware_prebuilt/blank_config.bin firmware/0x10000_blank_config.bin
 
 suite: blank all bootloader
 
