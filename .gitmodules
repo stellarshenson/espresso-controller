@@ -28,3 +28,6 @@
 [submodule "components/common/c-algorithms/c-algorithms"]
 	path = components/common/c-algorithms/c-algorithms
 	url = https://github.com/fragglet/c-algorithms.git
+[submodule "components/esp-8266/esp-serial-cmdline"]
+	path = components/esp-8266/esp-serial-cmdline
+	url = https://github.com/stellarshenson/esp-serial-cmdline.git
