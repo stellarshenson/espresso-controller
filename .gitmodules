@@ -28,3 +28,6 @@
 [submodule "components/esp-8266/esp-serial-cmdline"]
 	path = components/esp-8266/esp-serial-cmdline
 	url = https://github.com/stellarshenson/esp-serial-cmdline.git
+[submodule "components/common/esp-adv-button"]
+	path = components/common/esp-adv-button
+	url = https://github.com/RavenSystem/esp-adv-button.git
