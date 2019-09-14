@@ -230,11 +230,19 @@ void accessory_identify_task(void *_args) {
 }
 
 /**
-callbck function for the button events
+callbck function for the holdpress on GPIO_BUTTON
 */
-void button_hold_callback(uint8_t gpio, void* context) {
-    INFO("espresso_switch: registered hold-press on pin: %u", gpio);
+void button_holdpress_callback(uint8_t gpio, void* context) {
+    INFO("espresso_switch: registered holdpress on pin: %u", gpio);
 }
+
+/**
+callbck function for singlepress on GPIO_BUTTON
+*/
+void button_singlepress_callback(uint8_t gpio, void* context) {
+    INFO("espresso_switch: registered singlepress on pin: %u", gpio);
+}
+
 
 /**
  * process commands
@@ -326,7 +334,8 @@ void homekit_password_init() {
 void button_init() {
     adv_button_set_evaluate_delay(10);
     adv_button_create(GPIO_BUTTON, true, false);
-    adv_button_register_callback_fn(GPIO_BUTTON , button_hold_callback, 5, NULL);
+    adv_button_register_callback_fn(GPIO_BUTTON , button_holdpress_callback, button_event_type_holdpress, NULL);
+    adv_button_register_callback_fn(GPIO_BUTTON , button_singlepress_callback, button_event_type_singlepress, NULL);
 
     INFO("espresso_switch: initialised hold-press button on pin: %d", GPIO_BUTTON);
 }
