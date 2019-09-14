@@ -28,3 +28,6 @@
 [submodule "components/common/esp-adv-button"]
 	path = components/common/esp-adv-button
 	url = https://github.com/stellarshenson/esp-adv-button.git
+[submodule "components/esp-8266/esp-wifi-config"]
+	path = components/esp-8266/esp-wifi-config
+	url = https://github.com/maximkulkin/esp-wifi-config.git
