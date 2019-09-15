@@ -9,7 +9,7 @@ Also thanks to folowing other projects:
 * [maximkulkin/esp-wifi-config](https://github.com/maximkulkin/esp-wifi-config)
 * [ravensystem/esp-adv-button](https://github.com/RavenSystem/esp-adv-button.git)
 
-This module is specifically designed to control tunring on-and-off Rancilio Silvia v5 Espresso Machine.
+This module is specifically designed to control turning on-and-off Rancilio Silvia v5 Espresso Machine.
 Rancilio Silvia has only a momentary switch that while toggled, powers the machine on (when previously off) and off (when previously on).
 Additionally Rancilio Silvia uses an internal timer that turns the machine off after 30min
 
