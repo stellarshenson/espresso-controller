@@ -80,6 +80,7 @@ void serial_read_task();
 void on_command(char* cmd);
 void homekit_password_get(char **password);
 void homekit_password_set(const char *password);
+void reset_settings();
 
 /*
  * declared characteristics:
@@ -232,15 +233,17 @@ void accessory_identify_task(void *_args) {
 /**
 callbck function for the holdpress on GPIO_BUTTON
 */
-void button_holdpress_callback(uint8_t gpio, void* context) {
+void on_button_holdpress_callback(uint8_t gpio, void* context) {
     INFO("espresso_switch: registered holdpress on pin: %u", gpio);
+    reset_settings();
 }
 
 /**
 callbck function for singlepress on GPIO_BUTTON
 */
-void button_singlepress_callback(uint8_t gpio, void* context) {
+void on_button_singlepress_callback(uint8_t gpio, void* context) {
     INFO("espresso_switch: registered singlepress on pin: %u", gpio);
+    espresso_toggle();
 }
 
 
@@ -249,12 +252,7 @@ void button_singlepress_callback(uint8_t gpio, void* context) {
  * */
 void on_command_callback(char* cmd) {
     if(!strcmp(cmd, "reset")) {
-    	INFO("espresso_switch: resetting system");
-    	wifi_config_reset();
-    	vTaskDelay(500 / portTICK_PERIOD_MS);
-    	homekit_server_reset();
-    	vTaskDelay(500 / portTICK_PERIOD_MS);
-    	sdk_system_restart();
+	reset_settings();
     } else if( !strcmp(cmd, "reset_wifi") ) {
     	INFO("espresso_switch: resetting wifi settings");
     	wifi_config_reset();
@@ -335,8 +333,8 @@ void homekit_password_init() {
 void button_init() {
     adv_button_set_evaluate_delay(10);
     adv_button_create(GPIO_BUTTON, true, false);
-    adv_button_register_callback_fn(GPIO_BUTTON , button_holdpress_callback, button_event_type_holdpress, NULL);
-    adv_button_register_callback_fn(GPIO_BUTTON , button_singlepress_callback, button_event_type_singlepress, NULL);
+    adv_button_register_callback_fn(GPIO_BUTTON , on_button_holdpress_callback, button_event_type_holdpress, NULL);
+    adv_button_register_callback_fn(GPIO_BUTTON , on_button_singlepress_callback, button_event_type_singlepress, NULL);
 
     INFO("espresso_switch: initialised hold-press button on pin: %d", GPIO_BUTTON);
 }
@@ -369,6 +367,18 @@ void espresso_init() {
 void restore_settings() {
     homekit_password_get(&homekit_config.password);
 
+}
+
+/**
+ * reset wifi, homekit and other settings
+ * */
+void reset_settings() {
+    	INFO("espresso_switch: resetting system");
+    	wifi_config_reset();
+    	vTaskDelay(500 / portTICK_PERIOD_MS);
+    	homekit_server_reset();
+    	vTaskDelay(500 / portTICK_PERIOD_MS);
+    	sdk_system_restart();
 }
 
 void user_init(void) {
