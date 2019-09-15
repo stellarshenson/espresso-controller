@@ -42,12 +42,12 @@
 #define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
 #define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
 
-#define GPIO_ESPRESSO_TOGGLE    2
+#define GPIO_ESPRESSO_TOGGLE    14
 #define GPIO_STATUS_LED         2
 #define GPIO_ESPRESSO_SENSE     12
 #define GPIO_BUTTON             4
 #define ESPRESSO_SENSE_DELAY    1000
-#define ESPRESSO_TOGGLE_TIME    200
+#define ESPRESSO_TOGGLE_TIME    500
 
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_HTML "<p><b>Homekit Accessory </b><br>[ %s ]</p>"
@@ -70,7 +70,7 @@
 //prototypes
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context);
 void espresso_sense_task();
-void espresso_toggle(bool on);
+void espresso_toggle();
 void status_led_write(bool on);
 void accessory_identify_task(void *_args);
 void accessory_identify_callback(homekit_value_t _value);
@@ -137,7 +137,7 @@ volatile bool simulation_enabled = false;  //when true, status is read only from
  * */
 void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context) {
     if(espresso_sense_on.bool_value != on.bool_value) {
-	    espresso_toggle(on.bool_value);
+	    espresso_toggle();
     } else {
     	espresso_on.value.bool_value = on.bool_value;
     	status_led_write(on.bool_value);
@@ -150,15 +150,15 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, voi
  * and the internal espresso circuits will be energised. When state is off,
  * the the on-and-off toggle will turn espresso machine off
  * */
-void espresso_toggle(bool on) {
-    INFO("espresso_switch: espresso toggle %u, current power state is %u\n", on, espresso_sense_on.bool_value);
+void espresso_toggle() {
+    INFO("espresso_switch: current power state is %u", espresso_sense_on.bool_value);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
     vTaskDelay(ESPRESSO_TOGGLE_TIME / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
 
-    //set value
-    espresso_on.value.bool_value = on;
-    status_led_write(on);
+    //cannot set value - only toggle. Value will be set by the sense task
+    //espresso_on.value.bool_value = on;
+    //status_led_write(on);
 }
 
 /**
@@ -249,37 +249,38 @@ void button_singlepress_callback(uint8_t gpio, void* context) {
  * */
 void on_command_callback(char* cmd) {
     if(!strcmp(cmd, "reset")) {
-    	INFO("espresso_switch: resetting system\n");
+    	INFO("espresso_switch: resetting system");
     	wifi_config_reset();
     	vTaskDelay(500 / portTICK_PERIOD_MS);
     	homekit_server_reset();
     	vTaskDelay(500 / portTICK_PERIOD_MS);
     	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_wifi") ) {
-    	INFO("espresso_switch: resetting wifi settings\n");
+    	INFO("espresso_switch: resetting wifi settings");
     	wifi_config_reset();
     	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_accessory") ) {
-    	INFO("espresso_switch: resetting accessory pairing and settings\n");
+    	INFO("espresso_switch: resetting accessory pairing and settings");
     	homekit_server_reset();
     	sdk_system_restart();
     } else if( !strcmp(cmd, "reboot") ) {
-    	INFO("espresso_switch: rebooting\n");
+    	INFO("espresso_switch: rebooting");
     	sdk_system_restart();
     } else if( !strcmp(cmd, "simulate_on") ) {
-    	INFO("espresso_switch: Simulating espresso internal on\n");
+    	INFO("espresso_switch: Simulating espresso internal on");
     	simulation_enabled = true;
     	simulate_on.bool_value = true;
     } else if( !strcmp(cmd, "simulate_off") ) {
-    	INFO("espresso_switch: Simulating espresso internal off\n");
+    	INFO("espresso_switch: Simulating espresso internal off");
     	simulation_enabled = true;
     	simulate_on.bool_value = false;
     } else if( !strcmp(cmd, "simulation_disable") ) {
-    	INFO("espresso_switch: Disabling simulation\n");
+    	INFO("espresso_switch: Disabling simulation");
     	simulation_enabled = false;
     } else if( !strcmp(cmd, "toggle") ) {
-    	INFO("espresso_switch: toggling the switch\n");
+    	INFO("espresso_switch: toggling the switch");
     	simulation_enabled = false;
+	espresso_toggle();
     } else if( !strcmp(cmd, "status") ) {
 	    INFO("espresso_switch: Espresso machine status: %u\n", espresso_sense_on.bool_value);
     } else if( !strcmp(cmd, "help") ) {
@@ -350,11 +351,12 @@ void espresso_init() {
     //enable ESPRESSO_TOGGLE pin for OUTPUT and ESPRESSO_SENSE for INPUT
     gpio_enable(GPIO_ESPRESSO_TOGGLE, GPIO_OUTPUT);
     gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
+    gpio_enable(GPIO_STATUS_LED, GPIO_OUTPUT);
     gpio_set_pullup(GPIO_ESPRESSO_TOGGLE, false, false);
     gpio_set_pullup(GPIO_ESPRESSO_SENSE, false, false);
     status_led_write(false);
 
-    INFO("espresso_switch: espresso toggle on pin: %d and sense on pin: %d", GPIO_ESPRESSO_TOGGLE, GPIO_ESPRESSO_SENSE);
+    INFO("espresso_switch: espresso toggle on pin: %u, sense on pin: %u and status led pin: %u", GPIO_ESPRESSO_TOGGLE, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
 
     //enable sense task
     xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 1, NULL);
