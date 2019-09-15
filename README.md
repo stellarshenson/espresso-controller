@@ -7,3 +7,5 @@ Additionally Rancilio Silvia uses an internal timer that turns the machine off a
 
 Espresso Controller monitors the internal power state of the espresso machine and controls powering the machine up and down when activated
 
+Example circuit layout
+![circuit layout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/fritzing/espresso_switch_bb.png)
