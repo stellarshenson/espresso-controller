@@ -152,7 +152,7 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, voi
  * the the on-and-off toggle will turn espresso machine off
  * */
 void espresso_toggle() {
-    INFO("espresso_switch: current power state is %u", espresso_sense_on.bool_value);
+    INFO("espresso_switch: <toggle> current power state is %u", espresso_sense_on.bool_value);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 1);
     vTaskDelay(ESPRESSO_TOGGLE_TIME / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_TOGGLE, 0);
@@ -186,7 +186,7 @@ void espresso_sense_task() {
 
     	//when internal state different from homekit state - notify
     	if (espresso_sense_on.bool_value != espresso_on.value.bool_value) {
-    	    INFO("espresso_switch: power status changed: %u", espresso_sense_on.bool_value);
+    	    INFO("espresso_switch: <sense> power status changed: %u", espresso_sense_on.bool_value);
     	    homekit_characteristic_notify(&espresso_on, espresso_sense_on);
     	}
     }
@@ -234,7 +234,7 @@ void accessory_identify_task(void *_args) {
 callbck function for the holdpress on GPIO_BUTTON
 */
 void on_button_holdpress_callback(uint8_t gpio, void* context) {
-    INFO("espresso_switch: registered holdpress on pin: %u", gpio);
+    INFO("espresso_switch: <button> registered holdpress on pin: %u", gpio);
     reset_settings();
 }
 
@@ -242,7 +242,7 @@ void on_button_holdpress_callback(uint8_t gpio, void* context) {
 callbck function for singlepress on GPIO_BUTTON
 */
 void on_button_singlepress_callback(uint8_t gpio, void* context) {
-    INFO("espresso_switch: registered singlepress on pin: %u", gpio);
+    INFO("espresso_switch: <button> registered singlepress on pin: %u", gpio);
     espresso_toggle();
 }
 
