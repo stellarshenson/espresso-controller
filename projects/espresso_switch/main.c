@@ -329,7 +329,7 @@ void on_command_callback(char* _cmd) {
     	simulation_enabled = false;
 	espresso_toggle();
     } else if( !strcmp(_cmd, "status") ) {
-	INFO("espresso_switch: Espresso machine status: %u\n", espresso_sense_on.bool_value);
+	INFO("espresso_switch: Espresso machine status: %u", espresso_sense_on.bool_value);
     } else if( !strcmp(_cmd, "time") ) {
     	INFO("espresso_switch: reporting time of day");
     	time_t ts = time(NULL);
