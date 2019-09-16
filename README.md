@@ -15,6 +15,9 @@ Additionally Rancilio Silvia uses an internal timer that turns the machine off a
 
 Espresso Controller monitors the internal power state of the espresso machine and controls powering the machine up and down when activated
 
+### Firmware Build ###
+See [build firmware] wiki page for the reference
+
 ### Functionality ###
 The device is supposed to control the powering up and down the espresso machine and notify any power changes to the Homekit clients nearby. In the future the device will be able to control the auto-shutdown of the espresso machine (powersaving) and flushing (running water through the group after warm-up). Additionally the firmware will monitor the boiler temperature in the future.
 
