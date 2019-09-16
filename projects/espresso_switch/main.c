@@ -32,6 +32,10 @@
 #include <espressif/esp_system.h>
 #include <esp/hwrand.h>
 
+/* the following is for fetching the time over ntp protocol */
+#include <sntp.h>
+#include <time.h>
+
 #ifndef PROTO_UUID
 #define PROTO_UUID "-03a1-4971-92bf-af2b7d833922"
 #endif
@@ -49,6 +53,8 @@
 #define GPIO_BUTTON             4
 #define ESPRESSO_SENSE_DELAY    1000
 #define ESPRESSO_TOGGLE_TIME    500
+#define SNTP_SYNC_PERIOD	5*60000	
+#define SNTP_SERVERS		"0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org", "3.pool.ntp.org"
 
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_HTML "<p><b>Homekit Accessory </b><br>[ %s ]</p>"
@@ -131,7 +137,6 @@ homekit_server_config_t homekit_config = {
 volatile homekit_value_t espresso_sense_on = { .bool_value = false }; //changed by internal sense task
 volatile homekit_value_t simulate_on = { .bool_value = false }; //changed by commands
 volatile bool simulation_enabled = false;  //when true, status is read only from commands until next reboot
-
 
 /**
  * espresso callback function to receive value and enable the toggle
@@ -232,6 +237,34 @@ void accessory_identify_task(void *_args) {
 }
 
 /**
+ * taks to connect to NTP servers and get current time
+ * SNTP initiation conflicts with mDNS, make sure this 
+ * task is created only after homekit was started
+ * */
+void sntp_task(void *_args)
+{
+	const char *servers[] = {SNTP_SERVERS};
+
+	/* Start SNTP */
+	INFO("Starting SNTP... ");
+	/* SNTP will request an update each SNTP_SYNC_PERIOD miliseconds  */
+	sntp_set_update_delay(SNTP_SYNC_PERIOD);
+	/* Set UTC zone, daylight savings off */
+	const struct timezone tz = {0*60, 0};
+	/* SNTP initialization */
+	sntp_initialize(&tz);
+	/* Servers must be configured right after initialization */
+	sntp_set_servers(servers, sizeof(servers) / sizeof(char*));
+	INFO("SNTP connection established");
+
+	/* Print date and time and exit */
+	time_t ts = time(NULL);
+	printf("SYSTEM UTC TIME: %s", ctime(&ts));
+
+	vTaskDelete(NULL);
+}
+
+/**
 callbck function for the holdpress on GPIO_BUTTON
 */
 void on_button_holdpress_callback(uint8_t gpio, void* context) {
@@ -247,42 +280,56 @@ void on_button_singlepress_callback(uint8_t gpio, void* context) {
     espresso_toggle();
 }
 
+/**
+callback for events emitted by the homekit
+currently serve only to start SNTP only when homekit was activated
+ * */
+void on_homekit_event_callback(homekit_event_t _event) {
+    if (_event == HOMEKIT_EVENT_SERVER_INITIALIZED) {
+	//wait a little 
+    	vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+	//start time SNTP client
+	xTaskCreate(sntp_task, "SNTP", 1024, NULL, 1, NULL);	
+    }
+}
+
 
 /**
  * process commands
  * */
-void on_command_callback(char* cmd) {
-    if(!strcmp(cmd, "reset")) {
+void on_command_callback(char* _cmd) {
+    if(!strcmp(_cmd, "reset")) {
 	reset_settings();
-    } else if( !strcmp(cmd, "reset_wifi") ) {
+    } else if( !strcmp(_cmd, "reset_wifi") ) {
     	INFO("espresso_switch: resetting wifi settings");
     	wifi_config_reset();
     	sdk_system_restart();
-    } else if( !strcmp(cmd, "reset_accessory") ) {
+    } else if( !strcmp(_cmd, "reset_accessory") ) {
     	INFO("espresso_switch: resetting accessory pairing and settings");
     	homekit_server_reset();
     	sdk_system_restart();
-    } else if( !strcmp(cmd, "reboot") ) {
+    } else if( !strcmp(_cmd, "reboot") ) {
     	INFO("espresso_switch: rebooting");
     	sdk_system_restart();
-    } else if( !strcmp(cmd, "simulate_on") ) {
+    } else if( !strcmp(_cmd, "simulate_on") ) {
     	INFO("espresso_switch: Simulating espresso internal on");
     	simulation_enabled = true;
     	simulate_on.bool_value = true;
-    } else if( !strcmp(cmd, "simulate_off") ) {
+    } else if( !strcmp(_cmd, "simulate_off") ) {
     	INFO("espresso_switch: Simulating espresso internal off");
     	simulation_enabled = true;
     	simulate_on.bool_value = false;
-    } else if( !strcmp(cmd, "simulation_disable") ) {
+    } else if( !strcmp(_cmd, "simulation_disable") ) {
     	INFO("espresso_switch: Disabling simulation");
     	simulation_enabled = false;
-    } else if( !strcmp(cmd, "toggle") ) {
+    } else if( !strcmp(_cmd, "toggle") ) {
     	INFO("espresso_switch: toggling the switch");
     	simulation_enabled = false;
 	espresso_toggle();
-    } else if( !strcmp(cmd, "status") ) {
+    } else if( !strcmp(_cmd, "status") ) {
 	    INFO("espresso_switch: Espresso machine status: %u\n", espresso_sense_on.bool_value);
-    } else if( !strcmp(cmd, "help") ) {
+    } else if( !strcmp(_cmd, "help") ) {
     	INFO("espresso_switch: Available commands:\n\
     reboot - reboots the device, no changes to the settings\n\
     reset - resets the device settings to factory\n\
@@ -301,7 +348,9 @@ void on_command_callback(char* cmd) {
  * this function starts the homekit server
  * */
 void on_wifi_ready_callback() {
+    //register homekit event handler and start homekit server
     INFO("espresso_switch: starting homekit server");
+    homekit_config.on_event = on_homekit_event_callback;
     homekit_server_init(&homekit_config);
 }
 
@@ -310,12 +359,16 @@ void on_wifi_ready_callback() {
  * and generates the custom section to be displayed with the wifi_config AP server
  * */
 void homekit_password_init() {
+
+    //generate random password and write to sysparams if no password yet
     if (homekit_config.password == NULL) {
       	uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
       	homekit_config.password = (char*) calloc( 12 , sizeof(char));
 
       	//write accessory password and save it
-      	snprintf(homekit_config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
+      	snprintf(homekit_config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],
+	    homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
+
       	homekit_password_set(homekit_config.password); //when password was generated, save it to sysparams
     }
 
@@ -367,7 +420,6 @@ void espresso_init() {
  * */
 void restore_settings() {
     homekit_password_get(&homekit_config.password);
-
 }
 
 /**

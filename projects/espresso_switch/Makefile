@@ -9,6 +9,7 @@ PROTO_UUID = $(shell cat uuid.dat | sed 's/^\(.\{8\}\)//g' | sed 's/\(.*\)/\\"\1
 EXTRA_COMPONENTS = \
 	extras/http-parser \
 	extras/dhcpserver \
+	extras/sntp \
 	$(abspath ../../components/esp-8266/esp-wifi-config) \
 	$(abspath ../../components/esp-8266/esp-serial-cmdline) \
 	$(abspath ../../components/esp-8266/led-status) \
