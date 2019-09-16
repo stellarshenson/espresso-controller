@@ -15,6 +15,14 @@ Additionally Rancilio Silvia uses an internal timer that turns the machine off a
 
 Espresso Controller monitors the internal power state of the espresso machine and controls powering the machine up and down when activated
 
+### Functionality ###
+The device is supposed to control the powering up and down the espresso machine and notify any power changes to the Homekit clients nearby. In the future the device will be able to control the auto-shutdown of the espresso machine (powersaving) and flushing (running water through the group after warm-up). Additionally the firmware will monitor the boiler temperature in the future.
+
+Currently the device extends the following number of output interfaces:
+* __Toggle interface__ - controls the toggle switch and works exactly like the momentary switch on the espresso machine front panel
+* __Power sense interface__ - senses whether the machine is on or off (and provides notifications to the homekit clients)
+* __Status LED__ - indicates the status of the device, fast blink = booting up, slow-blink = AP mode, no blink = connected to the network, SOS blink (3 short, 3 long, 3 short) = problem
+
 ### Typical Circuit Layout ###
 You would need the following parts to complete the build
 * __Wemos D1 Mini <any>__ - any wemos with 4Mb+ flash works (Mini or Mini Pro)
