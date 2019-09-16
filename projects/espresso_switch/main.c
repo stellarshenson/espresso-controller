@@ -23,6 +23,7 @@
 #include <sysparam.h>
 
 #include <serial-cmdline.h>
+#include <led_status.h>
 
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>

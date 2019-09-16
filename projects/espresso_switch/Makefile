@@ -11,6 +11,7 @@ EXTRA_COMPONENTS = \
 	extras/dhcpserver \
 	$(abspath ../../components/esp-8266/esp-wifi-config) \
 	$(abspath ../../components/esp-8266/esp-serial-cmdline) \
+	$(abspath ../../components/esp-8266/led-status) \
 	$(abspath ../../components/common/wolfssl) \
 	$(abspath ../../components/common/cJSON) \
 	$(abspath ../../components/common/homekit) \
