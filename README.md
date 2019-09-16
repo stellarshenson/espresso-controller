@@ -25,7 +25,7 @@ Currently the device extends the following number of output interfaces:
 
 Additionally, when connected through the microUSB port to the computer, the device outputs serial diagnostics messages and extends serial commandline. Type *help* to get the list of available commands.
 
-The serial inteface was configured with the 74880 bits per second
+The serial inteface was configured with the __74880 baud rate__
 
 ### Typical Circuit Layout ###
 You would need the following parts to complete the build
