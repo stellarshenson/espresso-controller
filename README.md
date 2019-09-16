@@ -25,6 +25,7 @@ You would need the following parts to complete the build
 * HI-Link 5V power module (to power the thing up from mains) - it would be preferred to connect the controller to the mains terminals at the Rancilio power brick. I am figuiring out other options, stay tuned. Voltage for the Wemos D1 must be relatively clean.
 
 ![circuit layout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_bb.png)
+![power brick](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/rancilio-brain-1.jpeg)
 
 TBD: circuit schematics, PCB layout and the operation video
 
