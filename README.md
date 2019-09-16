@@ -36,6 +36,8 @@ You would need the following parts to complete the build
 * __1 Status LED + 330 Resistor__ - this is just a status LED. Fast blink = starting up, Slow blink - AP mode, No blink - connected to network 
 * __HI-Link 5V power module__ (to power the thing up from mains) - it would be preferred to connect the controller to the mains terminals at the Rancilio power brick. I am figuiring out other options, stay tuned. Voltage for the Wemos D1 must be relatively clean.Wemos has onboard a small 3v3 linear power supply controller. Please keep in mind that Wemos D1 uses 3v3 logic levels :-)
 
+I will publish the full BOM as soon as I finish the PCB build and installation
+
 ![circuit layout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_bb.png)
 ![power brick](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/rancilio-brain-annotated.png)
 
