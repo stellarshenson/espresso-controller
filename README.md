@@ -23,6 +23,10 @@ Currently the device extends the following number of output interfaces:
 * __Power sense interface__ - senses whether the machine is on or off (and provides notifications to the homekit clients)
 * __Status LED__ - indicates the status of the device, fast blink = booting up, slow-blink = AP mode, no blink = connected to the network, SOS blink (3 short, 3 long, 3 short) = problem
 
+Additionally, when connected through the microUSB port to the computer, the device outputs serial diagnostics messages and extends serial commandline. Type *help* to get the list of available commands.
+
+The serial inteface was configured with the 74880 bits per second
+
 ### Typical Circuit Layout ###
 You would need the following parts to complete the build
 * __Wemos D1 Mini <any>__ - any wemos with 4Mb+ flash works (Mini or Mini Pro)
