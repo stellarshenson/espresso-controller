@@ -1,5 +1,3 @@
-# espresso-controller
-
 ## Homekit Enabled Rancillio Espresso Controller ##
 Homekit enabled Rancilio Espresso Controller for Rancilio Silvia v5 Espresso Machine
 
@@ -17,7 +15,7 @@ Additionally Rancilio Silvia uses an internal timer that turns the machine off a
 
 Espresso Controller monitors the internal power state of the espresso machine and controls powering the machine up and down when activated
 
-### Typical Circuit Layout###
+### Typical Circuit Layout ###
 You would need the following parts to complete the build
 * Wemos D1 Mini <any>
 * Optocoupler + 330 Resistor
