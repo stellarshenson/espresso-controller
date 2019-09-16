@@ -1,7 +1,7 @@
 # espresso-controller
 Homekit enabled Rancilio Espresso Controller for Rancilio Silvia v5 Espresso Machine
 
-![rancilio silvia](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/rancilio-silvia.jpeg)
+![rancilio silvia](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/rancilio-silvia.jpeg)
 
 this project was possible thanks to the freeRTOS and esp-open-sdk
 Also thanks to folowing other projects:
