@@ -258,6 +258,7 @@ void sntp_task(void *_args)
 	INFO("SNTP connection established");
 
 	/* Print date and time and exit */
+	vTaskDelay(5000 / portTICK_PERIOD_MS);
 	time_t ts = time(NULL);
 	printf("SYSTEM UTC TIME: %s", ctime(&ts));
 
@@ -328,7 +329,11 @@ void on_command_callback(char* _cmd) {
     	simulation_enabled = false;
 	espresso_toggle();
     } else if( !strcmp(_cmd, "status") ) {
-	    INFO("espresso_switch: Espresso machine status: %u\n", espresso_sense_on.bool_value);
+	INFO("espresso_switch: Espresso machine status: %u\n", espresso_sense_on.bool_value);
+    } else if( !strcmp(_cmd, "time") ) {
+    	INFO("espresso_switch: reporting time of day");
+    	time_t ts = time(NULL);
+	printf("SYSTEM UTC TIME: %s", ctime(&ts));
     } else if( !strcmp(_cmd, "help") ) {
     	INFO("espresso_switch: Available commands:\n\
     reboot - reboots the device, no changes to the settings\n\
@@ -339,6 +344,7 @@ void on_command_callback(char* _cmd) {
     simulate_on - simulates espresso power state on\n\
     simulate_off - simulates espresso power state off\n\
     simulation_disable - disable simulation\n\
+    time - report current system time\n\
     status - returns the status of the espresso power circuit\n");
     }
 }
