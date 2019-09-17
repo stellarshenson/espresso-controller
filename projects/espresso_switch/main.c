@@ -30,6 +30,7 @@
 #include <wifi_config.h>
 #include <adv_button.h>
 #include <espressif/esp_system.h>
+#include <espressif/esp_common.h>
 #include <esp/hwrand.h>
 
 /* the following is for fetching the time over ntp protocol */
@@ -281,20 +282,6 @@ void on_button_singlepress_callback(uint8_t gpio, void* context) {
     espresso_toggle();
 }
 
-/**
-callback for events emitted by the homekit
-currently serve only to start SNTP only when homekit was activated
- * */
-void on_homekit_event_callback(homekit_event_t _event) {
-    if (_event == HOMEKIT_EVENT_SERVER_INITIALIZED) {
-	//wait a little 
-    	vTaskDelay(3000 / portTICK_PERIOD_MS);
-
-	//start time SNTP client
-	xTaskCreate(sntp_task, "SNTP", 1024, NULL, 1, NULL);	
-    }
-}
-
 
 /**
  * process commands
@@ -350,15 +337,39 @@ void on_command_callback(char* _cmd) {
 }
 
 /**
+callback for events emitted by the homekit
+currently serve only to start SNTP only when homekit was activated
+ * */
+void on_homekit_event_callback(homekit_event_t _event) {
+    if (_event == HOMEKIT_EVENT_SERVER_INITIALIZED) {
+	//wait a little for mDNS to activate
+    	vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+	//start time SNTP client
+	xTaskCreate(sntp_task, "SNTP", 1024, NULL, 1, NULL);	
+    }
+}
+
+/**
  * called when wifi configuration was completed
  * this function starts the homekit server
  * */
-void on_wifi_ready_callback() {
-    //register homekit event handler and start homekit server
-    INFO("espresso_switch: starting homekit server");
-    homekit_config.on_event = on_homekit_event_callback;
-    homekit_server_init(&homekit_config);
+void on_wifi_event_callback(wifi_config_event_t _event) {
+    //when connected to network register homekit event handler 
+    //and start homekit server
+    if (_event == WIFI_CONFIG_CONNECTED && sdk_wifi_get_opmode() != STATION_MODE) {
+	INFO("espresso_switch: connected to the network");
+	INFO("espresso_switch: starting homekit server");
+	homekit_config.on_event = on_homekit_event_callback;
+	homekit_server_init(&homekit_config);
+    }
+
+    //when in AP mode, simply drive the status LED to indicate
+    if (_event == WIFI_CONFIG_CONNECTED && sdk_wifi_get_opmode() != STATIONAP_MODE) {
+	INFO("espresso_switch: running in AP mode");
+    }
 }
+
 
 /**
  * generates accessory password from the chip_id, turns 32 bit chipID into 4-bit chunks and gets modulo 9 from each
@@ -445,7 +456,7 @@ void user_init(void) {
     restore_settings();
     serial_cmdline_init(on_command_callback);
     button_init();
-    wifi_config_init("espresso-switch", NULL, on_wifi_ready_callback);
+    wifi_config_init2("espresso-switch", NULL, on_wifi_event_callback); //using new API
     homekit_password_init();
     espresso_init();
 }
