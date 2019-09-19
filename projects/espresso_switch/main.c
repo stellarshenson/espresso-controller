@@ -57,6 +57,13 @@
 #define SNTP_SYNC_PERIOD	5*60000	
 #define SNTP_SERVERS		"0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org", "3.pool.ntp.org"
 
+#define DEFAULT_SWITCH_MODE	switch_mode_momentary
+
+#define SYSPARAM_SWITCH_MODE		"switch_mode"
+#define SYSPARAM_HOMEKIT_PASSWORD	"homekit_password"
+#define SYSPARAM_BOOTSTAPPED		"device_bootstrapped"
+
+
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_HTML "<p><b>Espresso Switch Accessory </b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "111-11-111"
@@ -89,6 +96,7 @@ void on_command(char* cmd);
 void homekit_password_get(char **password);
 void homekit_password_set(const char *password);
 void reset_settings();
+void save_settings();
 
 /*
  * declared characteristics:
@@ -134,10 +142,19 @@ homekit_server_config_t homekit_config = {
     .password = NULL
 };
 
+//mode of operation
+typedef enum {
+    switch_mode_momentary = 0,
+    switch_mode_toggle = 1
+} switch_mode_t;
+
+
 //sense value set by the sense task
 volatile homekit_value_t espresso_sense_on = { .bool_value = false }; //changed by internal sense task
 volatile homekit_value_t simulate_on = { .bool_value = false }; //changed by commands
 volatile bool simulation_enabled = false;  //when true, status is read only from commands until next reboot
+volatile int8_t switch_mode = (int8_t) DEFAULT_SWITCH_MODE; //momentary by default (we save it anyway) 
+
 
 /**
  * espresso callback function to receive value and enable the toggle
@@ -214,7 +231,7 @@ void accessory_identify_callback(homekit_value_t _value) {
  * show setup in the configuration app (eve)
  * */
 void show_setup_callback() {
-   //save_settings();
+   save_settings();
 }
 
 
@@ -301,8 +318,12 @@ void on_command_callback(char* cmdline) {
 	INFO("espresso_switch: setting up accessory with the: %s", cmdline );
 	if (!strcmp(arg1,"mode") && !strcmp(arg2, "toggle")) {
 	    INFO("espresso_switch: changing switch mode to %s", arg2 );
+	    switch_mode = switch_mode_toggle;
+	    save_settings();
 	} else if (!strcmp(arg1,"mode") && !strcmp(arg2,"momentary")) {
 	    INFO("espresso_switch: changing switch mode to %s", arg2 );
+	    switch_mode = switch_mode_momentary;
+	    save_settings();
 	}
     } else if (!strcmp(cmd, "setup_wifi")) {
 	INFO("espresso_switch: setting up wifi with the: %s", cmdline );
@@ -310,6 +331,8 @@ void on_command_callback(char* cmdline) {
 	wifi_config_get(&arg1, &arg2);
 	INFO("espresso_switch: ssid = '%s', password = '%s', restarting...", arg1, arg2);
     	sdk_system_restart();
+    } else if (!strcmp(cmd, "info_accessory")) {
+	INFO("espresso_switch: info about the accessory, password: %s, mode: %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle" );
     } else if (!strcmp(cmd, "info_wifi")) {
 	INFO("espresso_switch: getting information about wifi connection");
 	wifi_config_get(&arg1, &arg2);
@@ -351,6 +374,7 @@ void on_command_callback(char* cmdline) {
     reboot - reboots the device, no changes to the settings\n\
     setup_wifi <ssid> <password> - sets wifi ssid and passwords and reboots \n\
     setup_accessory [mode] [momentary|toggle] - sets switch operation mode\n\
+    info_accessory - provides information about current accessory setup \n\
     info_wifi - provides information about current wifi connction \n\
     reset - resets the device settings to factory\n\
     reset_accessory - resets pairing and accessory information and restarts homekit server\n\
@@ -407,6 +431,7 @@ void homekit_password_init() {
 
     //generate random password and write to sysparams if no password yet
     if (homekit_config.password == NULL) {
+	INFO("espresso_switch: no password available, generating new one");
       	uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
       	homekit_config.password = (char*) calloc( 12 , sizeof(char));
 
@@ -414,11 +439,12 @@ void homekit_password_init() {
       	snprintf(homekit_config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],
 	    homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
 
-      	homekit_password_set(homekit_config.password); //when password was generated, save it to sysparams
+	//save new password
+	save_settings();
     }
 
     //write custom section with the password
-    INFO("espresso_switch: accessory password: %s\n", homekit_config.password);
+    INFO("espresso_switch: accessory password: %s", homekit_config.password);
     char *buffer = (char*) calloc(strlen(homekit_config.password) + strlen(CUSTOM_HTML), sizeof(char));
     snprintf(buffer, strlen(homekit_config.password) + strlen(CUSTOM_HTML) + 1, CUSTOM_HTML, homekit_config.password);
 
@@ -469,36 +495,55 @@ void espresso_init() {
  * restore configuration params from memory / sysparam settings
  * */
 void restore_settings() {
-    homekit_password_get(&homekit_config.password);
+    int8_t _switch_mode; //keeps retrieved value to further write it to volatile switch_mode
+    char *bootstrapped = calloc(4, 1);
+
+    INFO("espresso_switch: restoring settings")
+    //find out if the device was bootstrapped
+    sysparam_get_string(SYSPARAM_BOOTSTAPPED, &bootstrapped);
+
+    if (!strcmp(bootstrapped, "yes")) {
+	INFO("espresso_switch: device already bootstrapped")
+	sysparam_get_string("homekit_password", &homekit_config.password);
+	sysparam_get_int8("switch_mode", &_switch_mode);
+	switch_mode = _switch_mode;
+    } else {
+	INFO("espresso_switch: new device, performing initial setup")
+	switch_mode = DEFAULT_SWITCH_MODE;
+	save_settings();
+    }
+}
+
+/**
+ * restore configuration params from memory / sysparam settings
+ * */
+void save_settings() {
+    INFO("espresso_switch: saving settings")
+    sysparam_set_string(SYSPARAM_BOOTSTAPPED, "yes"); //indicate that settings were saved at least once
+    sysparam_set_string(SYSPARAM_HOMEKIT_PASSWORD, homekit_config.password);
+    sysparam_set_int8(SYSPARAM_SWITCH_MODE, switch_mode);
 }
 
 /**
  * reset wifi, homekit and other settings
  * */
 void reset_settings() {
-    	INFO("espresso_switch: resetting system");
-    	wifi_config_reset();
-    	vTaskDelay(500 / portTICK_PERIOD_MS);
-    	homekit_server_reset();
-    	vTaskDelay(500 / portTICK_PERIOD_MS);
-    	sdk_system_restart();
+    INFO("espresso_switch: resetting system");
+    sysparam_set_string(SYSPARAM_BOOTSTAPPED, "");
+    sysparam_set_string(SYSPARAM_HOMEKIT_PASSWORD, "");
+
+    wifi_config_reset();
+    homekit_server_reset();
+    sdk_system_restart();
 }
 
 void user_init(void) {
     uart_set_baud(0, 74880); //using the same baud rate as boot loader (to not switch monitor)
     restore_settings();
     serial_cmdline_init(on_command_callback);
-    button_init();
     wifi_config_init2("espresso-switch", NULL, on_wifi_event_callback); //using new API
-    homekit_password_init();
+    homekit_password_init(); //generate and set password if needed, must be called after wifi_config
+    button_init();
     espresso_init();
 }
 
-void homekit_password_get(char **password) {
-    sysparam_get_string("homekit_password", password);
-}
-
-
-void homekit_password_set(const char *password) {
-    sysparam_set_string("homekit_password", password);
-}
