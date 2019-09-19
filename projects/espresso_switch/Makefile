@@ -1,4 +1,4 @@
-PROGRAM = 0x20000_espresso_switch
+PROGRAM = 0x2000_espresso_switch
 EXPORT_DIR = export
 
 # generate UUID for the build
@@ -31,11 +31,11 @@ copy:
 	cp firmware/$(PROGRAM).bin $(EXPORT_DIR)/
 
 blank:
-	dd if=/dev/zero of=firmware/0x10000_blank_0x00_1M.bin count=1 bs=1MB 
+	dd if=/dev/zero of=firmware/0x1000_blank_0x00_1M.bin count=1 bs=1MB 
 
 bootloader:
-	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x00000_rboot.bin
-	cp $(SDK_PATH)/bootloader/firmware_prebuilt/blank_config.bin firmware/0x10000_blank_config.bin
+	cp $(SDK_PATH)/bootloader/firmware_prebuilt/rboot.bin firmware/0x0000_rboot.bin
+	cp $(SDK_PATH)/bootloader/firmware_prebuilt/blank_config.bin firmware/0x1000_blank_config.bin
 
 suite: blank all bootloader
 
