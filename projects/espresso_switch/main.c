@@ -287,7 +287,7 @@ void on_button_singlepress_callback(uint8_t gpio, void* context) {
  * process commands
  * */
 void on_command_callback(char* _cmd) {
-    char *setup_buffer = calloc(128, 1);
+    static char setup_buffer[128];
     char *ssid = &setup_buffer[0];
     char *password = &setup_buffer[64];
 
