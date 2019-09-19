@@ -58,7 +58,7 @@
 #define SNTP_SERVERS		"0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org", "3.pool.ntp.org"
 
 //pairing password to display, this will be embedded in the AP homepage
-#define CUSTOM_HTML "<p><b>Homekit Accessory </b><br>[ %s ]</p>"
+#define CUSTOM_HTML "<p><b>Espresso Switch Accessory </b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "111-11-111"
 
 #define HOMEKIT_CUSTOM_UUID(value) (value PROTO_UUID)
@@ -287,8 +287,23 @@ void on_button_singlepress_callback(uint8_t gpio, void* context) {
  * process commands
  * */
 void on_command_callback(char* _cmd) {
+    char *setup_buffer = calloc(128, 1);
+    char *ssid = &setup_buffer[0];
+    char *password = &setup_buffer[64];
+
     if(!strcmp(_cmd, "reset")) {
 	reset_settings();
+    } else if( strncmp(_cmd, "setup_wifi", strlen("setup_wifi")) == 0 ) {
+	INFO("espresso_switch: setting up wifi with the: %s", _cmd );
+	sscanf(_cmd, "%*s %s %s", ssid, password);
+	wifi_config_set(ssid, password);
+	wifi_config_get(&ssid, &password);
+	INFO("espresso_switch: ssid = '%s', password = '%s', restarting...", ssid, password );
+    	sdk_system_restart();
+    } else if( !strcmp(_cmd, "info_wifi") ) {
+	INFO("espresso_switch: getting information about wifi connection");
+	wifi_config_get(&ssid, &password);
+	INFO("espresso_switch: ssid = '%s', password = '%s'", ssid, password);
     } else if( !strcmp(_cmd, "reset_wifi") ) {
     	INFO("espresso_switch: resetting wifi settings");
     	wifi_config_reset();
@@ -324,6 +339,8 @@ void on_command_callback(char* _cmd) {
     } else if( !strcmp(_cmd, "help") ) {
     	INFO("espresso_switch: Available commands:\n\
     reboot - reboots the device, no changes to the settings\n\
+    setup_wifi <ssid> <password> - sets wifi ssid and passwords and reboots \n\
+    info_wifi - provides information about current wifi connction \n\
     reset - resets the device settings to factory\n\
     reset_accessory - resets pairing and accessory information and restarts homekit server\n\
     reset_wifi - resets wifi ssid and password and reboots\n\
@@ -419,11 +436,16 @@ void button_init() {
 void espresso_init() {
     //enable ESPRESSO_TOGGLE pin for OUTPUT and ESPRESSO_SENSE for INPUT
     gpio_enable(GPIO_ESPRESSO_TOGGLE, GPIO_OUTPUT);
-    gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
     gpio_enable(GPIO_STATUS_LED, GPIO_OUTPUT);
     gpio_set_pullup(GPIO_ESPRESSO_TOGGLE, false, false);
     gpio_set_pullup(GPIO_ESPRESSO_SENSE, false, false);
     status_led_write(false);
+
+    //sense pin is charged, discharge it first before enabling input mode
+    gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_OUTPUT);
+    gpio_write(GPIO_ESPRESSO_SENSE, 0); //discharge capacitor
+    gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
+
 
     INFO("espresso_switch: espresso toggle on pin: %u, sense on pin: %u and status led pin: %u", GPIO_ESPRESSO_TOGGLE, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
 
