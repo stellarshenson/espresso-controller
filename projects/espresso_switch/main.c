@@ -96,6 +96,7 @@ void serial_read_task();
 void on_command(char* cmd);
 void reset_settings();
 void save_settings();
+void espresso_status();
 
 /*
  * declared characteristics:
@@ -164,7 +165,6 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t _on, vo
 	//when toggle mode, flip the switch on or off, no matter the power state
 	case switch_mode_toggle:
 	    espresso_toggle(_on.bool_value);
-	    espresso_on.value.bool_value = _on.bool_value;
 	    break;
 	//when momentary mode, cycle the switch. Mind that this event is called also by the sense task
 	case switch_mode_momentary:
@@ -174,7 +174,6 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t _on, vo
 	    } 
 	    //called from espresso_sense_task, just synchronise switch with power sense
 	    else {
-		espresso_on.value.bool_value = espresso_sense_on.bool_value;
 	    }
 	    break;
 	default:
@@ -187,10 +186,12 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t _on, vo
  * here we do not change the espresso_on value, we let sense mechanism to set the value
  * */
 void espresso_cycle() {
-    INFO("espresso_switch: <cycle momentary switch> current power state is %u", espresso_sense_on.bool_value);
+    INFO("espresso_switch: <cycle momentary switch> current power state is: %s", espresso_sense_on.bool_value ? "on" : "off");
     gpio_write(GPIO_ESPRESSO_SWITCH, 1);
+    status_led_write(1);
     vTaskDelay(ESPRESSO_TOGGLE_TIME / portTICK_PERIOD_MS);
     gpio_write(GPIO_ESPRESSO_SWITCH, 0);
+    status_led_write(0);
 }
 
 /**
@@ -201,6 +202,17 @@ void espresso_toggle(bool _on) {
     gpio_write(GPIO_ESPRESSO_SWITCH, _on);
     espresso_on.value.bool_value = _on;
     status_led_write(_on);
+}
+
+/***
+ * change status of espresso switch from current to opposite
+ * by either flipping the toggle or executing momentary 
+ * */
+void espresso_switch() {
+	if (switch_mode == switch_mode_toggle)
+	    espresso_toggle(espresso_on.value.bool_value ? 0 : 1);
+	else
+	    espresso_cycle();
 }
 
 
@@ -216,6 +228,8 @@ void status_led_write(bool _on) {
  * run this in a loop, find if the sense pin changed state
  * */
 void espresso_sense_task() {
+    //this is used to detect changes to the power status
+    homekit_value_t previous_espresso_sense_on = { .bool_value = espresso_sense_on.bool_value };
 
     //keep monitoring by going idle for a predefined time and then sense again.
     //when status of the espresso changed - notify homekit
@@ -226,18 +240,30 @@ void espresso_sense_task() {
     	if(! simulation_enabled) espresso_sense_on.bool_value = gpio_read(GPIO_ESPRESSO_SENSE);
     	else espresso_sense_on.bool_value = simulate_on.bool_value; //read simulation value
 
+	//make sure LED indicates power status
+	status_led_write(espresso_sense_on.bool_value);
+
+	//detect changes to the power from previous and synchronise
+	if (previous_espresso_sense_on.bool_value != espresso_sense_on.bool_value) {
+	    INFO("espresso_switch: <sense> power status changed %s->%s", 
+		   previous_espresso_sense_on.bool_value ? "on" : "off", espresso_sense_on.bool_value ? "on" : "off");
+	    previous_espresso_sense_on.bool_value = espresso_sense_on.bool_value;
+	}
+
+	//ignore notifications about power state change when mode == toggle
+	if (switch_mode == switch_mode_toggle) continue;
+
     	//when internal state different from homekit state - notify
 	//also change the status value  of the espresso 
     	if (espresso_sense_on.bool_value != espresso_on.value.bool_value) {
 	    //notify homekit, but this event is going to be ignored by espresso_on_callback
-	    INFO("espresso_switch: <sense> power status changed: %u", espresso_sense_on.bool_value);
-    	    homekit_characteristic_notify(&espresso_on, espresso_sense_on);
-	    status_led_write(espresso_sense_on.bool_value);
+	    INFO("espresso_switch: <sense> power status is now = %s", espresso_sense_on.bool_value ? "on" : "off");
+	    espresso_on.value.bool_value = espresso_sense_on.bool_value;
+	    homekit_characteristic_notify(&espresso_on, espresso_sense_on);
     	}
     }
 
     vTaskDelete(NULL);
-
 }
 
 /**
@@ -305,7 +331,7 @@ void sntp_task(void *_args)
 }
 
 /**
-callbck function for the holdpress on GPIO_BUTTON
+* callbck function for the holdpress on GPIO_BUTTON
 */
 void on_button_holdpress_callback(uint8_t gpio, void* context) {
     INFO("espresso_switch: <button> registered holdpress on pin: %u", gpio);
@@ -313,20 +339,11 @@ void on_button_holdpress_callback(uint8_t gpio, void* context) {
 }
 
 /**
-callbck function for singlepress on GPIO_BUTTON
+* callbck function for singlepress on GPIO_BUTTON
 */
 void on_button_singlepress_callback(uint8_t gpio, void* context) {
     INFO("espresso_switch: <button> registered singlepress on pin: %u", gpio);
-    switch(switch_mode) {
-	case switch_mode_toggle:
-	    espresso_toggle(espresso_on.value.bool_value ? 0 : 1);
-	    break;
-	case switch_mode_momentary:
-	    espresso_cycle();
-	    break;
-	default:
-	    break;
-    }
+    espresso_switch();
 }
 
 
@@ -392,9 +409,10 @@ void on_command_callback(char* cmdline) {
     } else if( !strcmp(cmd, "switch") ) {
     	INFO("espresso_switch: activate the switch");
     	simulation_enabled = false;
-	on_button_singlepress_callback(GPIO_ESPRESSO_SWITCH, NULL);
+	espresso_switch();
     } else if( !strcmp(cmd, "status") ) {
-	INFO("espresso_switch: Espresso machine status: %u", espresso_sense_on.bool_value);
+	INFO("espresso_switch: espresso machine status: %s", espresso_sense_on.bool_value ? "on" : "off");
+	espresso_status();
     } else if( !strcmp(cmd, "time") ) {
     	INFO("espresso_switch: reporting time of day");
     	time_t ts = time(NULL);
@@ -518,12 +536,22 @@ void espresso_init() {
     gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
 
 
-    INFO("espresso_switch: espresso toggle on pin: %u, sense on pin: %u and status led pin: %u", GPIO_ESPRESSO_SWITCH, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
+    //report status to stdout
+    espresso_status();
 
     //enable sense task
     xTaskCreate(espresso_sense_task, "Espresso Sense", 512, NULL, 1, NULL);
 }
 
+/**
+ * reports espresso status to the stdout
+ * */
+void espresso_status() {
+    INFO("espresso_switch: switch status: %s, power status: %s", espresso_on.value.bool_value ? "on" : "off", espresso_sense_on.bool_value ? "on" : "off");
+    INFO("espresso_switch: espresso switch on gpio = %u, sense on gpio = %u and status led gpio = %u", GPIO_ESPRESSO_SWITCH, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
+    INFO("espresso_switch: accessory password = '%s' mode = %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle");
+    INFO("espresso_switch: simulation = %s", simulation_enabled ? "enabled" : "disabled");
+}
 
 /**
  * restore configuration params from memory / sysparam settings
