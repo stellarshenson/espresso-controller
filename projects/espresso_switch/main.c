@@ -286,60 +286,71 @@ void on_button_singlepress_callback(uint8_t gpio, void* context) {
 /**
  * process commands
  * */
-void on_command_callback(char* _cmd) {
-    static char setup_buffer[128];
-    char *ssid = &setup_buffer[0];
-    char *password = &setup_buffer[64];
+void on_command_callback(char* cmdline) {
+    static char cmd_buffer[192];
+    char *cmd = &cmd_buffer[0];
+    char *arg1 = &cmd_buffer[64];
+    char *arg2 = &cmd_buffer[128];
 
-    if(!strcmp(_cmd, "reset")) {
+    //fill in arguments, apply safety
+    sscanf(cmdline, "%63s %63s %63s", cmd, arg1, arg2);
+
+    if(!strcmp(cmd, "reset")) {
 	reset_settings();
-    } else if( strncmp(_cmd, "setup_wifi", strlen("setup_wifi")) == 0 ) {
-	INFO("espresso_switch: setting up wifi with the: %s", _cmd );
-	sscanf(_cmd, "%*s %s %s", ssid, password);
-	wifi_config_set(ssid, password);
-	wifi_config_get(&ssid, &password);
-	INFO("espresso_switch: ssid = '%s', password = '%s', restarting...", ssid, password );
+    } else if (!strcmp(cmd, "setup_accessory")) {
+	INFO("espresso_switch: setting up accessory with the: %s", cmdline );
+	if (!strcmp(arg1,"mode") && !strcmp(arg2, "toggle")) {
+	    INFO("espresso_switch: changing switch mode to %s", arg2 );
+	} else if (!strcmp(arg1,"mode") && !strcmp(arg2,"momentary")) {
+	    INFO("espresso_switch: changing switch mode to %s", arg2 );
+	}
+    } else if (!strcmp(cmd, "setup_wifi")) {
+	INFO("espresso_switch: setting up wifi with the: %s", cmdline );
+	wifi_config_set(arg1, arg2);
+	wifi_config_get(&arg1, &arg2);
+	INFO("espresso_switch: ssid = '%s', password = '%s', restarting...", arg1, arg2);
     	sdk_system_restart();
-    } else if( !strcmp(_cmd, "info_wifi") ) {
+    } else if (!strcmp(cmd, "info_wifi")) {
 	INFO("espresso_switch: getting information about wifi connection");
-	wifi_config_get(&ssid, &password);
-	INFO("espresso_switch: ssid = '%s', password = '%s'", ssid, password);
-    } else if( !strcmp(_cmd, "reset_wifi") ) {
+	wifi_config_get(&arg1, &arg2);
+	INFO("espresso_switch: ssid = '%s', password = '%s'", arg1, arg2);
+    } else if( !strcmp(cmd, "reset_wifi") ) {
     	INFO("espresso_switch: resetting wifi settings");
     	wifi_config_reset();
     	sdk_system_restart();
-    } else if( !strcmp(_cmd, "reset_accessory") ) {
+    } else if( !strcmp(cmd, "reset_accessory") ) {
     	INFO("espresso_switch: resetting accessory pairing and settings");
     	homekit_server_reset();
     	sdk_system_restart();
-    } else if( !strcmp(_cmd, "reboot") ) {
+    } else if( !strcmp(cmd, "reboot") ) {
     	INFO("espresso_switch: rebooting");
     	sdk_system_restart();
-    } else if( !strcmp(_cmd, "simulate_on") ) {
+    } else if( !strcmp(cmd, "simulate_on") ) {
     	INFO("espresso_switch: Simulating espresso internal on");
     	simulation_enabled = true;
     	simulate_on.bool_value = true;
-    } else if( !strcmp(_cmd, "simulate_off") ) {
+    } else if( !strcmp(cmd, "simulate_off") ) {
     	INFO("espresso_switch: Simulating espresso internal off");
     	simulation_enabled = true;
     	simulate_on.bool_value = false;
-    } else if( !strcmp(_cmd, "simulation_disable") ) {
+    } else if( !strcmp(cmd, "simulation_disable") ) {
     	INFO("espresso_switch: Disabling simulation");
     	simulation_enabled = false;
-    } else if( !strcmp(_cmd, "toggle") ) {
+    } else if( !strcmp(cmd, "toggle") ) {
     	INFO("espresso_switch: toggling the switch");
     	simulation_enabled = false;
 	espresso_toggle();
-    } else if( !strcmp(_cmd, "status") ) {
+    } else if( !strcmp(cmd, "status") ) {
 	INFO("espresso_switch: Espresso machine status: %u", espresso_sense_on.bool_value);
-    } else if( !strcmp(_cmd, "time") ) {
+    } else if( !strcmp(cmd, "time") ) {
     	INFO("espresso_switch: reporting time of day");
     	time_t ts = time(NULL);
 	printf("SYSTEM UTC TIME: %s", ctime(&ts));
-    } else if( !strcmp(_cmd, "help") ) {
+    } else if( !strcmp(cmd, "help") ) {
     	INFO("espresso_switch: Available commands:\n\
     reboot - reboots the device, no changes to the settings\n\
     setup_wifi <ssid> <password> - sets wifi ssid and passwords and reboots \n\
+    setup_accessory [mode] [momentary|toggle] - sets switch operation mode\n\
     info_wifi - provides information about current wifi connction \n\
     reset - resets the device settings to factory\n\
     reset_accessory - resets pairing and accessory information and restarts homekit server\n\
