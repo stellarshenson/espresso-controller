@@ -61,7 +61,7 @@
 
 #define SYSPARAM_SWITCH_MODE		"switch_mode"
 #define SYSPARAM_HOMEKIT_PASSWORD	"homekit_password"
-#define SYSPARAM_BOOTSTAPPED		"device_bootstrapped"
+#define SYSPARAM_BOOTSTRAPPED		"device_bootstrapped"
 
 
 //pairing password to display, this will be embedded in the AP homepage
@@ -139,7 +139,7 @@ homekit_accessory_t *accessories[] = {
 //homekit server configuration - initial password and the list of declared accessories
 homekit_server_config_t homekit_config = {
     .accessories = accessories,
-    .password = NULL
+    .password = ""
 };
 
 //mode of operation
@@ -430,7 +430,8 @@ void on_wifi_event_callback(wifi_config_event_t _event) {
 void homekit_password_init() {
 
     //generate random password and write to sysparams if no password yet
-    if (homekit_config.password == NULL) {
+    //we initialise password with empty string, so it never is NULL
+    if (homekit_config.password[0] ==0) {
 	INFO("espresso_switch: no password available, generating new one");
       	uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
       	homekit_config.password = (char*) calloc( 12 , sizeof(char));
@@ -500,10 +501,10 @@ void restore_settings() {
 
     INFO("espresso_switch: restoring settings")
     //find out if the device was bootstrapped
-    sysparam_get_string(SYSPARAM_BOOTSTAPPED, &bootstrapped);
+    sysparam_get_string(SYSPARAM_BOOTSTRAPPED, &bootstrapped);
 
     if (!strcmp(bootstrapped, "yes")) {
-	INFO("espresso_switch: device already bootstrapped")
+	INFO("espresso_switch: device already bootstrapped (bootstrapped = %s)", bootstrapped)
 	sysparam_get_string("homekit_password", &homekit_config.password);
 	sysparam_get_int8("switch_mode", &_switch_mode);
 	switch_mode = _switch_mode;
@@ -512,6 +513,9 @@ void restore_settings() {
 	switch_mode = DEFAULT_SWITCH_MODE;
 	save_settings();
     }
+
+    //free buffer
+    free(bootstrapped);
 }
 
 /**
@@ -519,8 +523,8 @@ void restore_settings() {
  * */
 void save_settings() {
     INFO("espresso_switch: saving settings")
-    sysparam_set_string(SYSPARAM_BOOTSTAPPED, "yes"); //indicate that settings were saved at least once
     sysparam_set_string(SYSPARAM_HOMEKIT_PASSWORD, homekit_config.password);
+    sysparam_set_string(SYSPARAM_BOOTSTRAPPED, "yes"); //indicate that settings were saved at least once
     sysparam_set_int8(SYSPARAM_SWITCH_MODE, switch_mode);
 }
 
@@ -529,7 +533,7 @@ void save_settings() {
  * */
 void reset_settings() {
     INFO("espresso_switch: resetting system");
-    sysparam_set_string(SYSPARAM_BOOTSTAPPED, "");
+    sysparam_set_string(SYSPARAM_BOOTSTRAPPED, "no");
     sysparam_set_string(SYSPARAM_HOMEKIT_PASSWORD, "");
 
     wifi_config_reset();
