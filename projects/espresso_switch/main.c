@@ -223,7 +223,7 @@ void espresso_sense_task() {
  * identify accessort
  * */
 void accessory_identify_callback(homekit_value_t _value) {
-    INFO("[Homekit] Accessory identify");
+    INFO("espresso_switch: identify accessory");
     xTaskCreate(accessory_identify_task, "Accessory identify", 128, NULL, 2, NULL);
 }
 
@@ -419,6 +419,9 @@ void on_wifi_event_callback(wifi_config_event_t _event) {
     //when in AP mode, simply drive the status LED to indicate
     if (_event == WIFI_CONFIG_CONNECTED && sdk_wifi_get_opmode() != STATIONAP_MODE) {
 	INFO("espresso_switch: running in AP mode");
+	INFO("espresso_switch: starting homekit server");
+	homekit_config.on_event = on_homekit_event_callback;
+	homekit_server_init(&homekit_config);
     }
 }
 
