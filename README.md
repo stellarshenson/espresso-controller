@@ -65,6 +65,8 @@ I will publish the full BOM as soon as I finish the PCB build and installation
 
 TBD: circuit schematics, PCB layout and the operation video
 ![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_schem.png)
+![pcb](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_pcb_bottom.png)
+![preview](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_preview.png)
 
 ### Installation ###
 TBD
