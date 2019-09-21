@@ -64,6 +64,7 @@ I will publish the full BOM as soon as I finish the PCB build and installation
 ![power brick](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/rancilio-brain-annotated.png)
 
 TBD: circuit schematics, PCB layout and the operation video
+![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_schem.png)
 
 ### Installation ###
 TBD
