@@ -63,7 +63,12 @@ I will publish the full BOM as soon as I finish the PCB build and installation
 ![circuit layout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_bb.png)
 ![power brick](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/rancilio-brain-annotated.png)
 
-TBD: circuit schematics, PCB layout and the operation video
+## Circuit and PCB ##
+All chematics and PCB files are available in the [misc](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc) directory. The bill of materials is up-to-date in the [schematics pdf](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_schematics.pdf)
+
+PCB design is for the one-sided PCB with the copper pour connected to GND
+
+![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_schematics.png)
 ![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_schematics.png)
 ![pcb bottom](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_pcb_bottom.png)
 ![pcb bottom](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_pcb_top.png)
