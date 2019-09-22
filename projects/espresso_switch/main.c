@@ -48,7 +48,7 @@
 #define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
 #define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
 
-#define GPIO_ESPRESSO_SWITCH    14
+#define GPIO_ESPRESSO_RELAY    14
 #define GPIO_STATUS_LED         2
 #define GPIO_ESPRESSO_SENSE     12
 #define GPIO_BUTTON             4
@@ -187,10 +187,10 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t _on, vo
  * */
 void espresso_cycle() {
     INFO("espresso_switch: <cycle momentary switch> current power state is: %s", espresso_sense_on.bool_value ? "on" : "off");
-    gpio_write(GPIO_ESPRESSO_SWITCH, 1);
+    gpio_write(GPIO_ESPRESSO_RELAY, 1);
     status_led_write(1);
     vTaskDelay(ESPRESSO_TOGGLE_TIME / portTICK_PERIOD_MS);
-    gpio_write(GPIO_ESPRESSO_SWITCH, 0);
+    gpio_write(GPIO_ESPRESSO_RELAY, 0);
     status_led_write(0);
 }
 
@@ -199,7 +199,7 @@ void espresso_cycle() {
  * */
 void espresso_toggle(bool _on) {
     INFO("espresso_switch: <toggle switch> setting state = %s", _on ? "on" : "off" );
-    gpio_write(GPIO_ESPRESSO_SWITCH, _on);
+    gpio_write(GPIO_ESPRESSO_RELAY, _on);
     espresso_on.value.bool_value = _on;
     status_led_write(_on);
 }
@@ -237,7 +237,8 @@ void espresso_sense_task() {
     	vTaskDelay(ESPRESSO_SENSE_DELAY / portTICK_PERIOD_MS);
 
     	//by default read status from GPIO_ESPRESSO_SENSE. Otherwise read from simulation
-    	if(! simulation_enabled) espresso_sense_on.bool_value = gpio_read(GPIO_ESPRESSO_SENSE);
+	//sense gpio has pullup enabled and shorts to the GND when power is on
+    	if(! simulation_enabled) espresso_sense_on.bool_value = ! gpio_read(GPIO_ESPRESSO_SENSE);
     	else espresso_sense_on.bool_value = simulate_on.bool_value; //read simulation value
 
 	//make sure LED indicates power status
@@ -523,18 +524,14 @@ void button_init() {
  * of the espresso circuit and notifiy homekit on the status change
  * */
 void espresso_init() {
-    //enable ESPRESSO_TOGGLE pin for OUTPUT and ESPRESSO_SENSE for INPUT
-    gpio_enable(GPIO_ESPRESSO_SWITCH, GPIO_OUTPUT);
+    //enable ESPRESSO_RELAY pin for OUTPUT and ESPRESSO_SENSE for INPUT
+    gpio_enable(GPIO_ESPRESSO_RELAY, GPIO_OUTPUT);
     gpio_enable(GPIO_STATUS_LED, GPIO_OUTPUT);
-    gpio_set_pullup(GPIO_ESPRESSO_SWITCH, false, false);
-    gpio_set_pullup(GPIO_ESPRESSO_SENSE, false, false);
-    status_led_write(false);
-
-    //sense pin is charged, discharge it first before enabling input mode
-    gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_OUTPUT);
-    gpio_write(GPIO_ESPRESSO_SENSE, 0); //discharge capacitor
     gpio_enable(GPIO_ESPRESSO_SENSE, GPIO_INPUT);
-
+    gpio_set_pullup(GPIO_ESPRESSO_RELAY, false, false);
+    gpio_set_pullup(GPIO_ESPRESSO_SENSE, true, true);
+    gpio_write(GPIO_ESPRESSO_RELAY, 0); //turn off the relay
+    status_led_write(false);
 
     //report status to stdout
     espresso_status();
@@ -548,7 +545,7 @@ void espresso_init() {
  * */
 void espresso_status() {
     INFO("espresso_switch: switch status: %s, power status: %s", espresso_on.value.bool_value ? "on" : "off", espresso_sense_on.bool_value ? "on" : "off");
-    INFO("espresso_switch: espresso switch on gpio = %u, sense on gpio = %u and status led gpio = %u", GPIO_ESPRESSO_SWITCH, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
+    INFO("espresso_switch: espresso relay on gpio = %u, sense on gpio = %u and status led gpio = %u", GPIO_ESPRESSO_RELAY, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
     INFO("espresso_switch: accessory password = '%s' mode = %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle");
     INFO("espresso_switch: simulation = %s", simulation_enabled ? "enabled" : "disabled");
 }
