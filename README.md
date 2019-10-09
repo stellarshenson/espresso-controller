@@ -66,11 +66,11 @@ I will publish the full BOM as soon as I finish the PCB build and installation
 ## Circuit and PCB ##
 All schematics and PCB files are available in the [misc/board](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board) directory. The bill of materials is up-to-date in the [schematics pdf](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_schematics.pdf)
 
-PCB design is for one-sided PCB with a copper pour connected to the GND. [PCB bottom](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_bottom.pdf) and [PCB top](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_pcb_slim_top.pdf) printouts are available as 400dpi BMPs. Schematics and PCB files were produced with DipTrace
+PCB design is for one-sided PCB with a copper pour connected to the GND. [PCB printout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_printout.pdf) and [PCB top](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_pcb_slim_top.pdf) printouts are available as 600dpi. Schematics and PCB files were produced with DipTrace
 
 ![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_schematics.jpg)
-![pcb](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_400dpi.bmp)
-![pcb bottom](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_bottom_400dpi.bmp)
+![pcb](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_600dpi.jpg)
+![pcb bottom](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_bottom_600dpi.jpg)
 ![preview](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_slim_preview.png)
 
 ### Installation ###

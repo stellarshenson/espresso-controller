@@ -1,5 +1,5 @@
-1. paste 400dpi bmp-s in the MS word document
+1. paste 400dpi or 600dpi bmp-s in the MS word document
 2. change placement type to "background picture"
-3. change picture scale to 24%
+3. change picture scale to 24% (400dpi) or 16% (600dpi)
 
 the printout should be of correct size after that
