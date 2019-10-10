@@ -48,8 +48,8 @@
 #define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
 #define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
 
-#define GPIO_ESPRESSO_RELAY    14
-#define GPIO_STATUS_LED         2
+#define GPIO_ESPRESSO_RELAY     14
+#define GPIO_STATUS_LED         0 //D3
 #define GPIO_ESPRESSO_SENSE     12
 #define GPIO_BUTTON             4
 #define ESPRESSO_SENSE_DELAY    1000
@@ -183,7 +183,7 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t _on, vo
  * here we do not change the espresso_on value, we let sense mechanism to set the value
  * */
 void espresso_cycle() {
-    INFO("espresso_switch: <cycle momentary switch> current power state is: %s", espresso_sense_on.bool_value ? "on" : "off");
+    INFO("espresso_switch: <cycle momentary switch> current power status is: %s", espresso_sense_on.bool_value ? "on" : "off");
     gpio_write(GPIO_ESPRESSO_RELAY, 1);
     status_led_write(1);
     vTaskDelay(ESPRESSO_TOGGLE_TIME / portTICK_PERIOD_MS);
@@ -218,7 +218,7 @@ void espresso_switch() {
  * */
 void status_led_write(bool _on) {
     led_status = _on;
-    gpio_write(GPIO_STATUS_LED, _on ? 0 : 1);
+    gpio_write(GPIO_STATUS_LED, _on ? 1 : 0);
 }
 
 /**
@@ -247,7 +247,7 @@ void espresso_sense_task() {
 	}
 
 	//ignore notifications about power state change when mode == toggle
-    	//make sure LED indicates power status but only in momentary mode
+    //make sure LED indicates power status but only in momentary mode
 	if (switch_mode == switch_mode_toggle) continue;
 	else status_led_write(espresso_sense_on.bool_value);
 
@@ -426,8 +426,8 @@ void on_command_callback(char* cmdline) {
     reset_accessory - resets pairing and accessory information and restarts homekit server\n\
     reset_wifi - resets wifi ssid and password and reboots\n\
     switch - turns the espresso machine on or off\n\
-    simulate_on - simulates espresso power state on\n\
-    simulate_off - simulates espresso power state off\n\
+    simulate_on - simulates espresso power status on\n\
+    simulate_off - simulates espresso power status off\n\
     simulation_disable - disable simulation\n\
     time - report current system time\n\
     status - returns the status of the espresso power circuit\n");
