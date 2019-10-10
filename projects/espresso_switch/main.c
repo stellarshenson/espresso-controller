@@ -10,7 +10,17 @@
  * wifi config was found.
  *
  * After successful connection accessory shuts down AP.
+ * 
+ *  Wemos D1 Mini Pro
  *
+ *                 RST -|         |- TX  / GPIO1
+ *           ADC0 / A0 -|         |- RX  / GPIO3
+ *  D0 / WAKE / GPIO16 -|         |- D1 / SCL / GPIO5
+ *  D5 / SCLK / GPIO14 -|         |- D2 / SDA / GPIO4
+ *  D6 / MISO / GPIO12 -|         |- D3 / FLASH / GPIO0
+ *  D7 / MOSI / GPIO13 -|         |- D4 / GPIO2 / Onboard LED
+ *  D8 / CS /   GPIO15 -|   USB   |- GND
+ *                 3V3 -|___|=|___|- 5V
  */
 
 #include <stdio.h>
@@ -49,7 +59,7 @@
 #define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
 
 #define GPIO_ESPRESSO_RELAY     14
-#define GPIO_STATUS_LED         0 //D3
+#define GPIO_STATUS_LED         2 //D3 = GPIO0, D4 = GPIO2
 #define GPIO_ESPRESSO_SENSE     12
 #define GPIO_BUTTON             4
 #define ESPRESSO_SENSE_DELAY    1000
