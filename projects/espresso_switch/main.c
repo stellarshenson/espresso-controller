@@ -234,7 +234,7 @@ void espresso_sense_task() {
     while(1) {
     	vTaskDelay(ESPRESSO_SENSE_DELAY / portTICK_PERIOD_MS);
 
-    	//by default read status from GPIO_ESPRESSO_SENSE. Otherwise read from simulation
+    //by default read status from GPIO_ESPRESSO_SENSE. Otherwise read from simulation
 	//sense gpio has pullup enabled and shorts to the GND when power is on
     	if(! simulation_enabled) espresso_sense_on.bool_value = ! gpio_read(GPIO_ESPRESSO_SENSE);
     	else espresso_sense_on.bool_value = simulate_on.bool_value; //read simulation value
@@ -360,30 +360,31 @@ void on_command_callback(char* cmdline) {
     if(!strcmp(cmd, "reset")) {
 	reset_settings();
     } else if (!strcmp(cmd, "setup_accessory")) {
-	INFO("espresso_switch: setting up accessory with the: %s", cmdline );
-	if (!strcmp(arg1,"mode") && !strcmp(arg2, "toggle")) {
-	    INFO("espresso_switch: changing switch mode to %s", arg2 );
-	    switch_mode = switch_mode_toggle;
-	    save_settings();
-	} else if (!strcmp(arg1,"mode") && !strcmp(arg2,"momentary")) {
-	    INFO("espresso_switch: changing switch mode to %s", arg2 );
-	    switch_mode = switch_mode_momentary;
-	    save_settings();
-	}
+	   INFO("espresso_switch: setting up accessory with the: %s", cmdline );
+	   
+       if (!strcmp(arg1,"mode") && !strcmp(arg2, "toggle")) {
+	       INFO("espresso_switch: changing switch mode to %s", arg2 );
+	       switch_mode = switch_mode_toggle;
+	       save_settings();
+        } else if (!strcmp(arg1,"mode") && !strcmp(arg2,"momentary")) {
+	       INFO("espresso_switch: changing switch mode to %s", arg2 );
+	       switch_mode = switch_mode_momentary;
+	       save_settings();
+        }
     } else if (!strcmp(cmd, "setup_wifi")) {
-	INFO("espresso_switch: setting up wifi with the: %s", cmdline );
-	wifi_config_set(arg1, arg2);
-	wifi_config_get(&arg1, &arg2);
-	INFO("espresso_switch: ssid = '%s', password = '%s', restarting...", arg1, arg2);
-    	sdk_system_restart();
+        INFO("espresso_switch: setting up wifi with the: %s", cmdline );
+        wifi_config_set(arg1, arg2);
+        wifi_config_get(&arg1, &arg2);
+        INFO("espresso_switch: ssid = '%s', password = '%s', restarting...", arg1, arg2);
+        sdk_system_restart();
     } else if (!strcmp(cmd, "info_accessory")) {
-	INFO("espresso_switch: info about the accessory, password: %s, mode: %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle" );
+        INFO("espresso_switch: info about the accessory, password: %s, mode: %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle" );
     } else if (!strcmp(cmd, "info_wifi")) {
-	INFO("espresso_switch: getting information about wifi connection");
-	wifi_config_get(&arg1, &arg2);
-	INFO("espresso_switch: ssid = '%s', password = '%s'", arg1, arg2);
+        INFO("espresso_switch: getting information about wifi connection");
+        wifi_config_get(&arg1, &arg2);
+        INFO("espresso_switch: ssid = '%s', password = '%s'", arg1, arg2);
     } else if( !strcmp(cmd, "reset_wifi") ) {
-    	INFO("espresso_switch: resetting wifi settings");
+        INFO("espresso_switch: resetting wifi settings");
     	wifi_config_reset();
     	sdk_system_restart();
     } else if( !strcmp(cmd, "reset_accessory") ) {
@@ -407,10 +408,10 @@ void on_command_callback(char* cmdline) {
     } else if( !strcmp(cmd, "switch") ) {
     	INFO("espresso_switch: activate the switch");
     	simulation_enabled = false;
-	espresso_switch();
+        espresso_switch();
     } else if( !strcmp(cmd, "status") ) {
-	INFO("espresso_switch: espresso machine status: %s", espresso_sense_on.bool_value ? "on" : "off");
-	espresso_status();
+        INFO("espresso_switch: espresso machine status: %s", espresso_sense_on.bool_value ? "on" : "off");
+        espresso_status();
     } else if( !strcmp(cmd, "time") ) {
     	INFO("espresso_switch: reporting time of day");
     	time_t ts = time(NULL);
@@ -440,11 +441,11 @@ currently serve only to start SNTP only when homekit was activated
  * */
 void on_homekit_event_callback(homekit_event_t _event) {
     if (_event == HOMEKIT_EVENT_SERVER_INITIALIZED) {
-	//wait a little for mDNS to activate
-    	vTaskDelay(3000 / portTICK_PERIOD_MS);
+    	//wait a little for mDNS to activate
+        vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-	//start time SNTP client
-	xTaskCreate(sntp_task, "SNTP", 1024, NULL, 1, NULL);	
+    	//start time SNTP client
+    	xTaskCreate(sntp_task, "SNTP", 1024, NULL, 1, NULL);	
     }
 }
 
@@ -456,18 +457,18 @@ void on_wifi_event_callback(wifi_config_event_t _event) {
     //when connected to network register homekit event handler 
     //and start homekit server
     if (_event == WIFI_CONFIG_CONNECTED && sdk_wifi_get_opmode() != STATION_MODE) {
-	INFO("espresso_switch: connected to the network");
-	INFO("espresso_switch: starting homekit server");
-	homekit_config.on_event = on_homekit_event_callback;
-	homekit_server_init(&homekit_config);
+    	INFO("espresso_switch: connected to the network");
+    	INFO("espresso_switch: starting homekit server");
+    	homekit_config.on_event = on_homekit_event_callback;
+    	homekit_server_init(&homekit_config);
     }
 
     //when in AP mode, simply drive the status LED to indicate
     if (_event == WIFI_CONFIG_CONNECTED && sdk_wifi_get_opmode() != STATIONAP_MODE) {
-	INFO("espresso_switch: running in AP mode");
-	INFO("espresso_switch: starting homekit server");
-	homekit_config.on_event = on_homekit_event_callback;
-	homekit_server_init(&homekit_config);
+    	INFO("espresso_switch: running in AP mode");
+    	INFO("espresso_switch: starting homekit server");
+    	homekit_config.on_event = on_homekit_event_callback;
+    	homekit_server_init(&homekit_config);
     }
 }
 
@@ -481,16 +482,16 @@ void homekit_password_init() {
     //generate random password and write to sysparams if no password yet
     //we initialise password with empty string, so it never is NULL
     if (homekit_config.password[0] ==0) {
-	INFO("espresso_switch: no password available, generating new one");
-      	uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
-      	homekit_config.password = (char*) calloc( 12 , sizeof(char));
+        INFO("espresso_switch: no password available, generating new one");
+        uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
+        homekit_config.password = (char*) calloc( 12 , sizeof(char));
 
       	//write accessory password and save it
       	snprintf(homekit_config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],
 	    homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
 
-	//save new password
-	save_settings();
+        //save new password
+        save_settings();
     }
 
     //write custom section with the password
@@ -560,14 +561,14 @@ void restore_settings() {
     sysparam_get_string(SYSPARAM_BOOTSTRAPPED, &bootstrapped);
 
     if (!strcmp(bootstrapped, "yes")) {
-	INFO("espresso_switch: device already bootstrapped (bootstrapped = %s)", bootstrapped)
-	sysparam_get_string("homekit_password", &homekit_config.password);
-	sysparam_get_int8("switch_mode", &_switch_mode);
-	switch_mode = _switch_mode;
+    	INFO("espresso_switch: device already bootstrapped (bootstrapped = %s)", bootstrapped)
+    	sysparam_get_string("homekit_password", &homekit_config.password);
+    	sysparam_get_int8("switch_mode", &_switch_mode);
+    	switch_mode = _switch_mode;
     } else {
-	INFO("espresso_switch: new device, performing initial setup")
-	switch_mode = DEFAULT_SWITCH_MODE;
-	save_settings();
+    	INFO("espresso_switch: new device, performing initial setup")
+    	switch_mode = DEFAULT_SWITCH_MODE;
+    	save_settings();
     }
 
     //free buffer
