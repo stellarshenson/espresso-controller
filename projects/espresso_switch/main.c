@@ -153,6 +153,7 @@ typedef enum {
 volatile homekit_value_t espresso_sense_on = { .bool_value = false }; //changed by internal sense task
 volatile homekit_value_t simulate_on = { .bool_value = false }; //changed by commands
 volatile bool simulation_enabled = false;  //when true, status is read only from commands until next reboot
+volatile bool led_status = false; //led status, need for reporting status
 volatile int8_t switch_mode = (int8_t) DEFAULT_SWITCH_MODE; //momentary by default (we save it anyway) 
 
 
@@ -169,12 +170,8 @@ void espresso_on_callback(homekit_characteristic_t *_ch, homekit_value_t _on, vo
 	//when momentary mode, cycle the switch. Mind that this event is called also by the sense task
 	case switch_mode_momentary:
 	    //called from cycling the switch manually (button, homekit or command)
-	    if(espresso_sense_on.bool_value != _on.bool_value) {
+	    if(espresso_sense_on.bool_value != _on.bool_value) 
 		espresso_cycle();
-	    } 
-	    //called from espresso_sense_task, just synchronise switch with power sense
-	    else {
-	    }
 	    break;
 	default:
 	    break;
@@ -220,6 +217,7 @@ void espresso_switch() {
  * LED status light
  * */
 void status_led_write(bool _on) {
+    led_status = _on;
     gpio_write(GPIO_STATUS_LED, _on ? 0 : 1);
 }
 
@@ -241,9 +239,6 @@ void espresso_sense_task() {
     	if(! simulation_enabled) espresso_sense_on.bool_value = ! gpio_read(GPIO_ESPRESSO_SENSE);
     	else espresso_sense_on.bool_value = simulate_on.bool_value; //read simulation value
 
-	//make sure LED indicates power status
-	status_led_write(espresso_sense_on.bool_value);
-
 	//detect changes to the power from previous and synchronise
 	if (previous_espresso_sense_on.bool_value != espresso_sense_on.bool_value) {
 	    INFO("espresso_switch: <sense> power status changed %s->%s", 
@@ -252,9 +247,11 @@ void espresso_sense_task() {
 	}
 
 	//ignore notifications about power state change when mode == toggle
+    	//make sure LED indicates power status but only in momentary mode
 	if (switch_mode == switch_mode_toggle) continue;
+	else status_led_write(espresso_sense_on.bool_value);
 
-    	//when internal state different from homekit state - notify
+	//when internal state different from homekit state - notify
 	//also change the status value  of the espresso 
     	if (espresso_sense_on.bool_value != espresso_on.value.bool_value) {
 	    //notify homekit, but this event is going to be ignored by espresso_on_callback
@@ -547,6 +544,7 @@ void espresso_status() {
     INFO("espresso_switch: switch status: %s, power status: %s", espresso_on.value.bool_value ? "on" : "off", espresso_sense_on.bool_value ? "on" : "off");
     INFO("espresso_switch: espresso relay on gpio = %u, sense on gpio = %u and status led gpio = %u", GPIO_ESPRESSO_RELAY, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
     INFO("espresso_switch: accessory password = '%s' mode = %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle");
+    INFO("espresso_switch: status led = %s", led_status ? "enabled" : "disabled");
     INFO("espresso_switch: simulation = %s", simulation_enabled ? "enabled" : "disabled");
 }
 
