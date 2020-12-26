@@ -58,10 +58,10 @@
 #define INFO(message, ...) printf(">>> " message "\n", ##__VA_ARGS__);
 #define ERROR(message, ...) printf("!!! " message "\n", ##__VA_ARGS__);
 
-#define GPIO_ESPRESSO_RELAY     14
-#define GPIO_STATUS_LED         2 //D3 = GPIO0, D4 = GPIO2
-#define GPIO_ESPRESSO_SENSE     12
-#define GPIO_BUTTON             4
+#define GPIO_ESPRESSO_RELAY     14  // D5 = GPIO14
+#define GPIO_STATUS_LED         2   // D3 = GPIO00, D4 = GPIO02
+#define GPIO_ESPRESSO_SENSE     12  // D6 = GPIO12
+#define GPIO_BUTTON             4   // D2 = GPIO04
 #define ESPRESSO_SENSE_DELAY    1000
 #define ESPRESSO_TOGGLE_TIME    500
 #define SNTP_SYNC_PERIOD	5*60000	
