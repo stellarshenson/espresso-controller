@@ -52,7 +52,7 @@ The serial inteface was configured with the __74880 baud rate__
 ### Typical Circuit Layout ###
 You would need the following parts to complete the build
 * __Wemos D1 Mini <any>__ - any wemos with 4Mb+ flash works (Mini or Mini Pro)
-* __Optocoupler + 330 Resistor__ - used for powersense. The Rancilio Silvia 12V power indicator circuit it very noisy, we would use the optocoupler to provide galvanic isolation between the controller and the espresso machine
+* __Optocoupler + 330 Resistor (D6)__ - used for powersense. The Rancilio Silvia 12V power indicator circuit it very noisy, we would use the optocoupler to provide galvanic isolation between the controller and the espresso machine
 * __Relay__ (3.3V level or Relay 5v + NPN transistor and a couple of passive jellybeans) - this needs to switch the 12v noisy circuit. MOSFET will also do, but I'd prefer those to be galvanicaly isolated
 * __1 pull-down resistor (33k is ok)__ - power sense circuit is LOW by default and HIGH when 12V power indicator circuit energises the optocoupler
 * __1 Status LED + 330 Resistor__ - this is just a status LED. Fast blink = starting up, Slow blink - AP mode, No blink - connected to network 
