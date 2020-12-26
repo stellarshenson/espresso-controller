@@ -60,7 +60,7 @@ You would need the following parts to complete the build
 
 I will publish the full BOM as soon as I finish the PCB build and installation
 
-![circuit layout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/espresso_switch_bb.png)
+![circuit layout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_bb.png)
 ![power brick](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/rancilio-brain-annotated.png)
 
 ## Circuit and PCB ##
