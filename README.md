@@ -69,7 +69,7 @@ All schematics and PCB files are available in the [misc/board](https://github.co
 PCB design is for one-sided PCB with a copper pour connected to the GND. [PCB printout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb.pdf) printout available as 600dpi. Schematics and PCB files were produced with DipTrace
 
 ![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_schematics.jpg)
-![pcb](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_600dpi.jpg)
+![pcb top](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_top_600dpi.jpg)
 ![pcb bottom](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_bottom_600dpi.jpg)
 
 ### Installation ###
