@@ -37,24 +37,33 @@ ls firmware
 The prefix indicates where in the flash the firmware should be burned, use it when flashing with [esptool.py](https://github.com/themadinventor/esptool) or the [NodeMCU flasher](https://github.com/nodemcu/nodemcu-flasher/tree/master/Win64/Release). Additional settings for flashing of the firmware are: SPI Mode = DOUT, Baudrate = 230400, Flash size = <flash size of your Wemos unit in Mbyte>
 
 
-### Functionality ###
+### Principle of operation ###
 The device is supposed to control the powering up and down the espresso machine and notify any power changes to the Homekit clients nearby. In the future the device will be able to control the auto-shutdown of the espresso machine (powersaving) and flushing (running water through the group after warm-up). Additionally the firmware will monitor the boiler temperature in the future.
 
 Currently the device extends the following number of output interfaces:
 * __Toggle interface__ - controls the toggle switch and works exactly like the momentary switch on the espresso machine front panel
 * __Power sense interface__ - senses whether the machine is on or off (and provides notifications to the homekit clients)
 * __Status LED__ - indicates the status of the device, fast blink = booting up, slow-blink = AP mode, no blink = connected to the network, SOS blink (3 short, 3 long, 3 short) = problem
+* __Button__ - press once to manually trigger power switch (used to test device wiring). hold for 10s to reset device to factory settings
 
 Additionally, when connected through the microUSB port to the computer, the device outputs serial diagnostics messages and extends serial commandline. Type *help* to get the list of available commands.
 
 The serial inteface was configured with the __74880 baud rate__
 
+### Functionality ###
+Device boots up in 2 different modes:
+1. as new device, you need to find its wifi ssid (Espresso-Switch-xxxx) and configure its access to your network via web captive portal
+2. as connected device. you need to connect to its IP and capture its Homekit code
+3. as homekit device. it is ready for operation once added to your homekit network
+
+
+
+
 ### Typical Circuit Layout ###
 You would need the following parts to complete the build
 * __Wemos D1 Mini <any>__ - any wemos with 4Mb+ flash works (Mini or Mini Pro)
-* __Optocoupler + 330 Resistor (D6)__ - used for powersense. The Rancilio Silvia 12V power indicator circuit it very noisy, we would use the optocoupler to provide galvanic isolation between the controller and the espresso machine
-* __Relay__ (3.3V level or Relay 5v + NPN transistor and a couple of passive jellybeans) - this needs to switch the 12v noisy circuit. MOSFET will also do, but I'd prefer those to be galvanicaly isolated
-* __1 pull-down resistor (33k is ok)__ - power sense circuit is LOW by default and HIGH when 12V power indicator circuit energises the optocoupler
+* __Optocoupler + 1k Resistor (D6)__ - used for powersense. The Rancilio Silvia 12V power indicator circuit it very noisy, we would use the optocoupler to provide galvanic isolation between the controller and the espresso machine
+* __Relay__ (3.3V level or Relay 5v + NPN transistor and a couple of passive jellybeans) - this needs to switch the 12v AC momentary switch
 * __1 Status LED + 330 Resistor__ - this is just a status LED. Fast blink = starting up, Slow blink - AP mode, No blink - connected to network 
 * __HI-Link 5V power module__ (to power the thing up from mains) - it would be preferred to connect the controller to the mains terminals at the Rancilio power brick. I am figuiring out other options, stay tuned. Voltage for the Wemos D1 must be relatively clean.Wemos has onboard a small 3v3 linear power supply controller. Please keep in mind that Wemos D1 uses 3v3 logic levels :-)
 
