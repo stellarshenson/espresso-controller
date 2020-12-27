@@ -244,7 +244,7 @@ void espresso_sense_task() {
     while(1) {
     	vTaskDelay(ESPRESSO_SENSE_DELAY / portTICK_PERIOD_MS);
 
-    //by default read status from GPIO_ESPRESSO_SENSE. Otherwise read from simulation
+        //by default read status from GPIO_ESPRESSO_SENSE. Otherwise read from simulation
 	//sense gpio has pullup enabled and shorts to the GND when power is on
     	if(! simulation_enabled) espresso_sense_on.bool_value = ! gpio_read(GPIO_ESPRESSO_SENSE);
     	else espresso_sense_on.bool_value = simulate_on.bool_value; //read simulation value
