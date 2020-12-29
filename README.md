@@ -75,7 +75,7 @@ I will publish the full BOM as soon as I finish the PCB build and installation
 ## Circuit and PCB ##
 All schematics and PCB files are available in the [misc/board](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board) directory. The bill of materials is up-to-date in the [schematics pdf](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_schematics.pdf)
 
-PCB design is for one-sided PCB with a copper pour connected to the GND. [PCB printout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_bottom.pdf) printout available as 600dpi. Schematics and PCB files were produced with DipTrace
+PCB design is for one-sided PCB with a copper pour connected to the GND. [PCB printout](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_bottom.pdf) printout available as 600dpi to print and etch according to [instructuins](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/pcb_howto.txt). Schematics and PCB files were produced with DipTrace
 
 ![circuit](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_schematics.jpg)
 ![pcb top](https://github.com/stellarshenson/espresso-controller/blob/master/projects/espresso_switch/misc/board/espresso_switch_pcb_top_600dpi.jpg)
