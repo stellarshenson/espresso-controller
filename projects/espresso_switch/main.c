@@ -42,6 +42,7 @@
 #include <espressif/esp_system.h>
 #include <espressif/esp_common.h>
 #include <esp/hwrand.h>
+#include <esp/hwrand.h>
 
 /* the following is for fetching the time over ntp protocol */
 #include <sntp.h>
@@ -77,6 +78,7 @@
 //pairing password to display, this will be embedded in the AP homepage
 #define CUSTOM_HTML "<p><b>Espresso Switch Accessory </b><br> %s </p>"
 #define INITIAL_ACCESSORY_PASSWORD "111-11-111"
+#define HOMEKIT_SETUPID "1QJ8"
 
 #define HOMEKIT_CUSTOM_UUID(value) (value PROTO_UUID)
 #define HOMEKIT_SERVICE_CUSTOM_SETUP HOMEKIT_CUSTOM_UUID("F00000FF")
@@ -149,7 +151,8 @@ homekit_accessory_t *accessories[] = {
 //homekit server configuration - initial password and the list of declared accessories
 homekit_server_config_t homekit_config = {
     .accessories = accessories,
-    .password = ""
+    .password = "",
+    .setupId = HOMEKIT_SETUPID
 };
 
 //mode of operation
@@ -492,13 +495,16 @@ void homekit_password_init() {
     //generate random password and write to sysparams if no password yet
     //we initialise password with empty string, so it never is NULL
     if (homekit_config.password[0] ==0) {
-        INFO("espresso_switch: no password available, generating new one");
-        uint8_t homekit_password[] = { hwrand() % 10, hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10,hwrand() % 10};
+        uint32_t chipId = sdk_system_get_chip_id();
+        INFO("espresso_switch: no password available, generating new one from chip ID: %d", chipId);
+        uint8_t homekit_password[] = { chipId %10,(chipId>>1) %10,(chipId >>2) %10,(chipId >>3) %10,(chipId >>4) %10,(chipId >>5) %10, (chipId >>6) %10,(chipId >>7) %10};
         homekit_config.password = (char*) calloc( 12 , sizeof(char));
 
       	//write accessory password and save it
       	snprintf(homekit_config.password, 11, "%u%u%u-%u%u-%u%u%u", homekit_password[0],homekit_password[1],homekit_password[2],homekit_password[3],
 	    homekit_password[4],homekit_password[5],homekit_password[6],homekit_password[7]);
+
+        INFO("espresso_switch: setting homekit password = %s", homekit_config.password);
 
         //save new password
         save_settings();
@@ -552,11 +558,14 @@ void espresso_init() {
  * reports espresso status to the stdout
  * */
 void espresso_status() {
+    uint32_t chipId = sdk_system_get_chip_id();
+    INFO("espresso_switch: chipId = %d", chipId);
     INFO("espresso_switch: switch status: %s, power status: %s", espresso_on.value.bool_value ? "on" : "off", espresso_sense_on.bool_value ? "on" : "off");
     INFO("espresso_switch: espresso relay on gpio = %u, sense on gpio = %u and status led gpio = %u", GPIO_ESPRESSO_RELAY, GPIO_ESPRESSO_SENSE, GPIO_STATUS_LED);
-    INFO("espresso_switch: accessory password = '%s' mode = %s", homekit_config.password, switch_mode == switch_mode_momentary ? "momentary" : "toggle");
+    INFO("espresso_switch: accessory password = '%s' setupId = %s, mode = %s", homekit_config.password, homekit_config.setupId, switch_mode == switch_mode_momentary ? "momentary" : "toggle");
     INFO("espresso_switch: status led = %s", led_status ? "enabled" : "disabled");
     INFO("espresso_switch: simulation = %s", simulation_enabled ? "enabled" : "disabled");
+
 }
 
 /**
