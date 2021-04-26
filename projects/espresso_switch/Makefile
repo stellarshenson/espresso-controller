@@ -4,6 +4,9 @@ PROGRAM = 0x2000_espresso_switch
 SPIFFS_BASE_ADDR = 0x200000
 SPIFFS_SIZE = 0x010000
 
+#override build dir to tmp
+BUILD_DIR = /tmp/$(PROGRAM)/build/
+
 BLANK_1M_FIRMWARE_NAME = 0x1000_blank_0x00_1M.bin
 BOOTLOADER_FIRMWARE_NAME = 0x0000_rboot.bin 
 BLANK_CONFIG_FIRMWARE_NAME = 0x1000_blank_config.bin
