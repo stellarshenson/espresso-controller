@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "characteristics.h": "c",
+        "esp_system.h": "c",
+        "freertos.h": "c"
+    }
+}

@@ -42,7 +42,7 @@
 #include <espressif/esp_system.h>
 #include <espressif/esp_common.h>
 #include <esp/hwrand.h>
-#include <esp/hwrand.h>
+
 
 /* the following is for fetching the time over ntp protocol */
 #include <sntp.h>
