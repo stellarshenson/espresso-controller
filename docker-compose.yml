@@ -2,7 +2,7 @@ version: '3'
 services:
   builder:
     image: stellars/esp-open-rtos
-    container_name: stellars/esp-open-rtos
+    container_name: esp-open-rtos
     volumes:
         - ./:/opt/esp-open-rtos/examples/project:rw
     command: tail -F /dev/null
